@@ -816,11 +816,6 @@ class RealHealthDataService {
     this.notifyListeners('disconnected', { provider: providerName });
   }
 
-  // Get available providers for UI
-  getAvailableProviders() {
-    return this.checkAvailableProviders();
-  }
-
   // Check if any providers have credentials configured
   hasAnyConfiguredProviders() {
     const available = this.getAvailableProviders();

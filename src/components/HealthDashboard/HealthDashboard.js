@@ -3,28 +3,71 @@ import './HealthDashboard.css';
 import HealthDataService from '../../services/HealthDataService';
 import RealHealthDataService from '../../services/RealHealthDataService';
 import HealthDataConnector from '../HealthDataConnector/HealthDataConnector';
+import mcpHealthServer from '../../services/MCPHealthServer';
 
 const HealthDashboard = () => {
   const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showConnector, setShowConnector] = useState(false);
-  const [dataSource, setDataSource] = useState('mock'); // 'mock' or 'real'
-  const [selectedMetric, setSelectedMetric] = useState('overview');
+  const [dataSource, setDataSource] = useState('mock'); // 'mock', 'real', or 'mcp'
   const [refreshing, setRefreshing] = useState(false);
   const [realDataAvailable, setRealDataAvailable] = useState(false);
+  const [mcpDataAvailable, setMcpDataAvailable] = useState(false);
 
   useEffect(() => {
     loadHealthData();
     checkRealDataAvailability();
+
+    // Subscribe to MCP server events
+    const unsubscribeMCP = mcpHealthServer.subscribe((event, data) => {
+      handleMCPEvent(event, data);
+    });
+
+    // Start MCP server
+    mcpHealthServer.start();
+
     const interval = setInterval(loadHealthData, 60000); // Refresh every minute
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      unsubscribeMCP();
+    };
   }, []);
 
   const checkRealDataAvailability = () => {
     const availableProviders = RealHealthDataService.getAvailableProviders();
     const connectedProviders = availableProviders.filter(p => p.connected);
     setRealDataAvailable(connectedProviders.length > 0);
+
+    // Check MCP data availability
+    const recentMCPData = mcpHealthServer.getRecentData(1);
+    setMcpDataAvailable(recentMCPData.length > 0);
+  };
+
+  const handleMCPEvent = (event, data) => {
+    console.log(`MCP Event: ${event}`, data);
+
+    switch (event) {
+      case 'data:updated':
+        // Update dashboard with MCP processed data
+        if (data.source === 'mcp-screenshot-processor') {
+          setHealthData(data);
+          setDataSource('mcp');
+          setMcpDataAvailable(true);
+          setError(null);
+          setLoading(false);
+        }
+        break;
+      case 'insights:generated':
+        // Update with enriched data containing insights
+        if (data.source === 'mcp-screenshot-processor') {
+          setHealthData(data);
+        }
+        break;
+      case 'workflow:error':
+        console.error('MCP Workflow Error:', data.error);
+        break;
+    }
   };
 
   const loadHealthData = async () => {
@@ -65,11 +108,43 @@ const HealthDashboard = () => {
   };
 
   const toggleDataSource = () => {
-    if (dataSource === 'real') {
-      setDataSource('mock');
-      loadHealthData();
-    } else {
-      setShowConnector(true);
+    // Cycle through: mock → real → mcp → mock
+    switch (dataSource) {
+      case 'mock':
+        if (realDataAvailable) {
+          setDataSource('real');
+          loadHealthData();
+        } else if (mcpDataAvailable) {
+          setDataSource('mcp');
+          // Use latest MCP data
+          const recentData = mcpHealthServer.getRecentData(1);
+          if (recentData.length > 0) {
+            setHealthData(recentData[0]);
+          }
+        } else {
+          setShowConnector(true);
+        }
+        break;
+      case 'real':
+        if (mcpDataAvailable) {
+          setDataSource('mcp');
+          // Use latest MCP data
+          const recentData = mcpHealthServer.getRecentData(1);
+          if (recentData.length > 0) {
+            setHealthData(recentData[0]);
+          }
+        } else {
+          setDataSource('mock');
+          loadHealthData();
+        }
+        break;
+      case 'mcp':
+        setDataSource('mock');
+        loadHealthData();
+        break;
+      default:
+        setDataSource('mock');
+        loadHealthData();
     }
   };
 
@@ -408,14 +483,19 @@ const HealthDashboard = () => {
         <div className="data-controls">
           <div className="data-source-toggle">
             <button
-              className={`toggle-btn ${dataSource === 'real' ? 'active' : ''}`}
+              className={`toggle-btn ${dataSource === 'real' || dataSource === 'mcp' ? 'active' : ''}`}
               onClick={toggleDataSource}
             >
-              {dataSource === 'real' ? '🟢 Real Data' : '🟡 Mock Data'}
+              {dataSource === 'mcp' ? '🤖 AI Processed' : dataSource === 'real' ? '🟢 Real Data' : '🟡 Mock Data'}
             </button>
             {dataSource === 'real' && (
               <span className="connection-indicator">
                 {realDataAvailable ? '✅ Connected' : '🔌 Not Connected'}
+              </span>
+            )}
+            {dataSource === 'mcp' && (
+              <span className="connection-indicator">
+                {mcpDataAvailable ? '🤖 MCP Active' : '⚡ Ready'}
               </span>
             )}
           </div>
@@ -444,9 +524,18 @@ const HealthDashboard = () => {
             <div className="source-item">
               <span className="source-name">Mode:</span>
               <span className="source-description">
-                {dataSource === 'real' ? 'Real-time data from connected apps' : 'Simulated demo data'}
+                {dataSource === 'mcp' ? 'AI-processed data from mobile app screenshots' :
+                 dataSource === 'real' ? 'Real-time data from connected apps' : 'Simulated demo data'}
               </span>
             </div>
+            {dataSource === 'mcp' && mcpDataAvailable && (
+              <div className="source-item">
+                <span className="source-name">AI Processing:</span>
+                <span className="source-description">
+                  Screenshot analysis with workflow automation
+                </span>
+              </div>
+            )}
             {dataSource === 'real' && realDataAvailable && (
               <div className="source-item">
                 <span className="source-name">Connected Apps:</span>
