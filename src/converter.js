@@ -36,6 +36,7 @@ function createAnimation (recordedData, morphTargetDictionary, bodyPart) {
     let time = []
     let finishedFrames = 0
     recordedData.forEach((d, i) => {
+        if (!d || !d.blendshapes) return;
         Object.entries(d.blendshapes).forEach(([key, value]) => {
 
           if (! (modifiedKey(key) in morphTargetDictionary)) {return};
@@ -57,6 +58,10 @@ function createAnimation (recordedData, morphTargetDictionary, bodyPart) {
 
     let flag = false;
     //create morph animation
+    if (!recordedData || !recordedData[0] || !recordedData[0].blendshapes) {
+        console.warn("No blendshape data available for animation");
+        return;
+    }
     Object.entries(recordedData[0].blendshapes).forEach(([key, value]) => {
 
       if (! (modifiedKey(key) in morphTargetDictionary)) {return};

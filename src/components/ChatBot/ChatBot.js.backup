@@ -39,18 +39,24 @@ function Avatar({
   setAudioSource,
   playing,
 }) {
-  // ALL HOOKS MUST BE CALLED AT THE TOP LEVEL - NO CONDITIONAL HOOK CALLS
-
-  // State hooks
   const [modelError, setModelError] = useState(null);
-  const [clips, setClips] = useState([]);
-  const [morphTargetDictionaryBody, setMorphTargetDictionaryBody] = useState(null);
-  const [morphTargetDictionaryLowerTeeth, setMorphTargetDictionaryLowerTeeth] = useState(null);
-  const [isModelReady, setIsModelReady] = useState(false);
 
-  // Resource hooks (always called, never conditionally)
-  const gltf = useGLTF(avatar_url);
-  const textures = useTexture([
+  let gltf;
+  try {
+    gltf = useGLTF(avatar_url);
+  } catch (error) {
+    console.error("Error loading 3D model:", error);
+    setModelError(error.message);
+    return null;
+  }
+  let morphTargetDictionaryBody = null;
+  let morphTargetDictionaryLowerTeeth = null;
+
+  const [textureError, setTextureError] = useState(null);
+
+  let textures;
+  try {
+    textures = useTexture([
     "/images/body.webp",
     "/images/eyes.webp",
     "/images/teeth_diffuse.webp",
@@ -67,18 +73,12 @@ function Avatar({
     "/images/h_normal.webp",
     "/images/h_roughness.webp",
   ]);
-  const idleFbx = useFBX("/idle.fbx");
-  const { clips: idleClips } = useAnimations(idleFbx.animations);
+  } catch (error) {
+    console.error("Error loading textures:", error);
+    setTextureError(error.message);
+    textures = [];
+  }
 
-  // Memo hook
-  const mixer = useMemo(() => {
-    if (gltf && gltf.scene) {
-      return new THREE.AnimationMixer(gltf.scene);
-    }
-    return null;
-  }, [gltf]);
-
-  // Destructure textures
   const [
     bodyTexture,
     eyesTexture,
@@ -97,199 +97,131 @@ function Avatar({
     hairRoughnessTexture,
   ] = textures;
 
-  // Effects (always called in the same order)
-
-  // Handle model loading errors
-  useEffect(() => {
-    if (gltf && gltf.scene) {
-      setIsModelReady(true);
-      setModelError(null);
-    } else {
-      setModelError("Failed to load 3D model");
-      setIsModelReady(false);
-    }
-  }, [gltf]);
-
-  // Handle texture loading and setup
-  useEffect(() => {
-    if (textures && textures.length > 0) {
-      _.each(
-        [
-          bodyTexture,
-          eyesTexture,
-          teethTexture,
-          teethNormalTexture,
-          bodySpecularTexture,
-          bodyRoughnessTexture,
-          bodyNormalTexture,
-          tshirtDiffuseTexture,
-          tshirtNormalTexture,
-          tshirtRoughnessTexture,
-          hairAlphaTexture,
-          hairNormalTexture,
-          hairRoughnessTexture,
-        ],
-        (t) => {
-          if (t) {
-            t.colorSpace = SRGBColorSpace;
-            t.flipY = false;
-          }
+  if (textures.length > 0) {
+    _.each(
+      [
+        bodyTexture,
+        eyesTexture,
+        teethTexture,
+        teethNormalTexture,
+        bodySpecularTexture,
+        bodyRoughnessTexture,
+        bodyNormalTexture,
+        tshirtDiffuseTexture,
+        tshirtNormalTexture,
+        tshirtRoughnessTexture,
+        hairAlphaTexture,
+        hairNormalTexture,
+        hairRoughnessTexture,
+      ],
+      (t) => {
+        if (t) {
+          t.colorSpace = SRGBColorSpace;
+          t.flipY = false;
         }
-      );
+      }
+    );
 
-      // Normal maps should not have color space encoding
-      if (bodyNormalTexture) bodyNormalTexture.colorSpace = NoColorSpace;
-      if (tshirtNormalTexture) tshirtNormalTexture.colorSpace = NoColorSpace;
-      if (teethNormalTexture) teethNormalTexture.colorSpace = NoColorSpace;
-      if (hairNormalTexture) hairNormalTexture.colorSpace = NoColorSpace;
-    }
-  }, [textures, bodyTexture, eyesTexture, teethTexture, teethNormalTexture,
-      bodySpecularTexture, bodyRoughnessTexture, bodyNormalTexture,
-      tshirtDiffuseTexture, tshirtNormalTexture, tshirtRoughnessTexture,
-      hairAlphaTexture, hairNormalTexture, hairRoughnessTexture]);
+  // Normal maps should not have color space encoding
+  if (bodyNormalTexture) bodyNormalTexture.colorSpace = NoColorSpace;
+  if (tshirtNormalTexture) tshirtNormalTexture.colorSpace = NoColorSpace;
+  if (teethNormalTexture) teethNormalTexture.colorSpace = NoColorSpace;
+  if (hairNormalTexture) hairNormalTexture.colorSpace = NoColorSpace;
 
-  // Setup model materials and morph targets
-  useEffect(() => {
-    if (!isModelReady || !gltf || !gltf.scene) return;
+  gltf.scene.traverse((node) => {
+    if (
+      node.type === "Mesh" ||
+      node.type === "LineSegments" ||
+      node.type === "SkinnedMesh"
+    ) {
+      node.castShadow = true;
+      node.receiveShadow = true;
+      node.frustumCulled = false;
 
-    let bodyMorphDict = null;
-    let teethMorphDict = null;
-
-    gltf.scene.traverse((node) => {
-      if (
-        node.type === "Mesh" ||
-        node.type === "LineSegments" ||
-        node.type === "SkinnedMesh"
-      ) {
+      if (node?.name.includes("Body")) {
         node.castShadow = true;
         node.receiveShadow = true;
-        node.frustumCulled = false;
 
-        if (node?.name.includes("Body")) {
-          node.castShadow = true;
-          node.receiveShadow = true;
+        node.material = new MeshPhysicalMaterial();
+        if (bodyTexture) node.material.map = bodyTexture;
+        // node.material.shininess = 60;
+        node.material.roughness = 1.7;
 
-          node.material = new MeshPhysicalMaterial();
-          if (bodyTexture) node.material.map = bodyTexture;
-          node.material.roughness = 1.7;
+        // node.material.specularMap = bodySpecularTexture;
+        if (bodyRoughnessTexture) node.material.roughnessMap = bodyRoughnessTexture;
+        if (bodyNormalTexture) node.material.normalMap = bodyNormalTexture;
+        node.material.normalScale = new Vector2(0.6, 0.6);
 
-          if (bodyRoughnessTexture) node.material.roughnessMap = bodyRoughnessTexture;
-          if (bodyNormalTexture) node.material.normalMap = bodyNormalTexture;
-          node.material.normalScale = new Vector2(0.6, 0.6);
+        morphTargetDictionaryBody = node.morphTargetDictionary;
 
-          bodyMorphDict = node.morphTargetDictionary;
-          node.material.envMapIntensity = 0.8;
-        }
-
-        if (node?.name.includes("Eyes")) {
-          node.material = new MeshStandardMaterial();
-          if (eyesTexture) node.material.map = eyesTexture;
-          node.material.roughness = 0.1;
-          node.material.envMapIntensity = 0.5;
-        }
-
-        if (node?.name.includes("Brows")) {
-          node.material = new LineBasicMaterial({ color: 0x000000 });
-          node.material.linewidth = 1;
-          node.material.opacity = 0.5;
-          node.material.transparent = true;
-          node.visible = false;
-        }
-
-        if (node?.name.includes("Teeth")) {
-          node.receiveShadow = true;
-          node.castShadow = true;
-          node.material = new MeshStandardMaterial();
-          node.material.roughness = 0.1;
-          if (teethTexture) node.material.map = teethTexture;
-          if (teethNormalTexture) node.material.normalMap = teethNormalTexture;
-          node.material.envMapIntensity = 0.7;
-        }
-
-        if (node?.name.includes("Hair")) {
-          node.material = new MeshStandardMaterial();
-          if (hairTexture) node.material.map = hairTexture;
-          if (hairAlphaTexture) node.material.alphaMap = hairAlphaTexture;
-          if (hairNormalTexture) node.material.normalMap = hairNormalTexture;
-          if (hairRoughnessTexture) node.material.roughnessMap = hairRoughnessTexture;
-
-          node.material.transparent = true;
-          node.material.depthWrite = false;
-          node.material.side = 2;
-          node.material.color.setHex(0x000000);
-          node.material.envMapIntensity = 0.3;
-        }
-
-        if (node?.name.includes("TSHIRT")) {
-          node.material = new MeshStandardMaterial();
-
-          if (tshirtDiffuseTexture) node.material.map = tshirtDiffuseTexture;
-          if (tshirtRoughnessTexture) node.material.roughnessMap = tshirtRoughnessTexture;
-          if (tshirtNormalTexture) node.material.normalMap = tshirtNormalTexture;
-          node.material.color.setHex(0xffffff);
-          node.material.envMapIntensity = 0.5;
-        }
-
-        if (node?.name.includes("TeethLower")) {
-          teethMorphDict = node.morphTargetDictionary;
-        }
-      }
-    });
-
-    setMorphTargetDictionaryBody(bodyMorphDict);
-    setMorphTargetDictionaryLowerTeeth(teethMorphDict);
-  }, [isModelReady, gltf, bodyTexture, eyesTexture, teethTexture, teethNormalTexture,
-      bodyRoughnessTexture, bodyNormalTexture, hairTexture, hairAlphaTexture,
-      hairNormalTexture, hairRoughnessTexture, tshirtDiffuseTexture,
-      tshirtRoughnessTexture, tshirtNormalTexture]);
-
-  // Setup idle animations
-  useEffect(() => {
-    if (!idleClips || !idleClips[0] || !mixer) return;
-
-    const filteredTracks = _.filter(idleClips[0].tracks, (track) => {
-      return (
-        track?.name.includes("Head") ||
-        track?.name.includes("Neck") ||
-        track?.name.includes("Spine2")
-      );
-    });
-
-    const mappedTracks = _.map(filteredTracks, (track) => {
-      if (track?.name.includes("Head")) {
-        track.name = "head.quaternion";
+        node.material.envMapIntensity = 0.8;
+        // node.material.visible = false;
       }
 
-      if (track?.name.includes("Neck")) {
-        track.name = "neck.quaternion";
+      if (node?.name.includes("Eyes")) {
+        node.material = new MeshStandardMaterial();
+        if (eyesTexture) node.material.map = eyesTexture;
+        // node.material.shininess = 100;
+        node.material.roughness = 0.1;
+        node.material.envMapIntensity = 0.5;
       }
 
-      if (track?.name.includes("Spine")) {
-        track.name = "spine2.quaternion";
+      if (node?.name.includes("Brows")) {
+        node.material = new LineBasicMaterial({ color: 0x000000 });
+        node.material.linewidth = 1;
+        node.material.opacity = 0.5;
+        node.material.transparent = true;
+        node.visible = false;
       }
 
-      return track;
-    });
+      if (node?.name.includes("Teeth")) {
+        node.receiveShadow = true;
+        node.castShadow = true;
+        node.material = new MeshStandardMaterial();
+        node.material.roughness = 0.1;
+        if (teethTexture) node.material.map = teethTexture;
+        if (teethNormalTexture) node.material.normalMap = teethNormalTexture;
 
-    idleClips[0].tracks = mappedTracks;
+        node.material.envMapIntensity = 0.7;
+      }
 
-    const idleClipAction = mixer.clipAction(idleClips[0]);
-    idleClipAction.play();
+      if (node?.name.includes("Hair")) {
+        node.material = new MeshStandardMaterial();
+        if (hairTexture) node.material.map = hairTexture;
+        if (hairAlphaTexture) node.material.alphaMap = hairAlphaTexture;
+        if (hairNormalTexture) node.material.normalMap = hairNormalTexture;
+        if (hairRoughnessTexture) node.material.roughnessMap = hairRoughnessTexture;
 
-    if (morphTargetDictionaryBody) {
-      const blinkClip = createAnimation(
-        blinkData,
-        morphTargetDictionaryBody,
-        "HG_Body"
-      );
-      const blinkAction = mixer.clipAction(blinkClip);
-      blinkAction.play();
+        node.material.transparent = true;
+        node.material.depthWrite = false;
+        node.material.side = 2;
+        node.material.color.setHex(0x000000);
+
+        node.material.envMapIntensity = 0.3;
+      }
+
+      if (node?.name.includes("TSHIRT")) {
+        node.material = new MeshStandardMaterial();
+
+        if (tshirtDiffuseTexture) node.material.map = tshirtDiffuseTexture;
+        if (tshirtRoughnessTexture) node.material.roughnessMap = tshirtRoughnessTexture;
+        if (tshirtNormalTexture) node.material.normalMap = tshirtNormalTexture;
+        node.material.color.setHex(0xffffff);
+
+        node.material.envMapIntensity = 0.5;
+      }
+
+      if (node?.name.includes("TeethLower")) {
+        morphTargetDictionaryLowerTeeth = node.morphTargetDictionary;
+      }
     }
-  }, [idleClips, mixer, morphTargetDictionaryBody]);
+  });
 
-  // Handle speech synthesis
+  const [clips, setClips] = useState([]);
+  const mixer = useMemo(() => new THREE.AnimationMixer(gltf.scene), []);
+
   useEffect(() => {
-    if (speak === false || !morphTargetDictionaryBody || !morphTargetDictionaryLowerTeeth) return;
+    if (speak === false) return;
 
     makeSpeech(text)
       .then((response) => {
@@ -313,24 +245,61 @@ function Avatar({
         console.error(err);
         setSpeak(false);
       });
-  }, [speak, text, morphTargetDictionaryBody, morphTargetDictionaryLowerTeeth, setAudioSource, setSpeak]);
+  }, [speak]);
+
+  let idleFbx = useFBX("/idle.fbx");
+  let { clips: idleClips } = useAnimations(idleFbx.animations);
+
+  idleClips[0].tracks = _.filter(idleClips[0].tracks, (track) => {
+    return (
+      track?.name.includes("Head") ||
+      track?.name.includes("Neck") ||
+      track?.name.includes("Spine2")
+    );
+  });
+
+  idleClips[0].tracks = _.map(idleClips[0].tracks, (track) => {
+    if (track?.name.includes("Head")) {
+      track.name = "head.quaternion";
+    }
+
+    if (track?.name.includes("Neck")) {
+      track.name = "neck.quaternion";
+    }
+
+    if (track?.name.includes("Spine")) {
+      track.name = "spine2.quaternion";
+    }
+
+    return track;
+  });
+
+  useEffect(() => {
+    let idleClipAction = mixer.clipAction(idleClips[0]);
+    idleClipAction.play();
+
+    let blinkClip = createAnimation(
+      blinkData,
+      morphTargetDictionaryBody,
+      "HG_Body"
+    );
+    let blinkAction = mixer.clipAction(blinkClip);
+    blinkAction.play();
+  }, []);
 
   // Play animation clips when available
   useEffect(() => {
-    if (playing === false || !mixer) return;
+    if (playing === false) return;
 
     _.each(clips, (clip) => {
       let clipAction = mixer.clipAction(clip);
       clipAction.setLoop(THREE.LoopOnce);
       clipAction.play();
     });
-  }, [playing, clips, mixer]);
+  }, [playing]);
 
-  // Frame update hook
   useFrame((state, delta) => {
-    if (mixer) {
-      mixer.update(delta);
-    }
+    mixer.update(delta);
   });
 
   // If there's a model error, show a fallback avatar
@@ -347,11 +316,6 @@ function Avatar({
         </mesh>
       </group>
     );
-  }
-
-  // If model is not ready yet, return null
-  if (!isModelReady || !gltf || !gltf.scene) {
-    return null;
   }
 
   return (
@@ -507,16 +471,8 @@ const ChatBot = () => {
   const stop = async () => {
     try {
       const mp3Blob = await Mp3Recorder.stop().getMp3();
-      if (mp3Blob && mp3Blob.size > 0) {
-        try {
-          const audioURL = URL.createObjectURL(mp3Blob);
-          console.log("Audio recorded:", audioURL);
-        } catch (urlError) {
-          console.warn("Failed to create object URL for audio:", urlError);
-        }
-      } else {
-        console.warn("No audio data recorded");
-      }
+      const audioURL = URL.createObjectURL(mp3Blob);
+      console.log("Audio recorded:", audioURL);
 
       setIsRecording(false);
       SpeechRecognition.stopListening();
@@ -563,8 +519,8 @@ const ChatBot = () => {
               <h1 className="text-center text-xl font-semibold mb-2">
                 Chat Window
               </h1>
-              {chats?.map((chat, index) => (
-                <h1 key={index} className="text-lg">
+              {chats?.map((chat) => (
+                <h1 className="text-lg">
                   <span className="font-semibold">{chat.role}</span> :{" "}
                   {chat.msg}
                 </h1>
@@ -718,7 +674,7 @@ function Bg() {
 
   return (
     <mesh position={[0, 1.5, -2]} scale={[0.9, 0.8, 0.9]}>
-      <planeGeometry />
+      <planeBufferGeometry />
       <meshBasicMaterial map={texture} />
     </mesh>
   );
