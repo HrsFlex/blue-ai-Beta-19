@@ -10,6 +10,7 @@ import { BsFillChatLeftTextFill } from "react-icons/bs";
 import { BiSolidPhoneCall } from "react-icons/bi";
 import { ToastContainer, toast } from "react-toastify";
 import { FaAward } from "react-icons/fa";
+import { MdPsychology } from "react-icons/md";
 import "react-toastify/dist/ReactToastify.css";
 import logo from "../../assets/logo.png"
 const navigations = [
@@ -60,6 +61,12 @@ const navigations = [
     path: "/rewards",
     name: "Rewards",
     Icon: ({ color }) => <FaAward size={25} color={color} />,
+  },
+  {
+    id: 10,
+    path: "/mental-wellness",
+    name: "Mental Wellness",
+    Icon: ({ color }) => <MdPsychology size={25} color={color} />,
   },
   {
     id: 8,

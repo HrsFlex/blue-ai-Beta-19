@@ -1,0 +1,305 @@
+.mood-tracker-container {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  animation: slideUpMood 0.5s ease-out;
+}
+
+@keyframes slideUpMood {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.mood-tracker-card {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  max-width: 500px;
+  width: 90vw;
+  animation: moodCardPulse 2s ease-in-out infinite;
+}
+
+@keyframes moodCardPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+.mood-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.mood-emoji {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: emojiBounce 3s ease-in-out infinite;
+}
+
+@keyframes emojiBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.mood-header h3 {
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+  font-size: 24px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #4285f4, #34a853);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.mood-header p {
+  margin: 0;
+  color: #5f6368;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.mood-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.mood-option {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 16px;
+  padding: 20px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mood-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s ease;
+}
+
+.mood-option:hover::before {
+  left: 100%;
+}
+
+.mood-option:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  border-color: var(--mood-color);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(66, 133, 244, 0.05));
+}
+
+.mood-emoji-large {
+  font-size: 36px;
+  transition: transform 0.3s ease;
+}
+
+.mood-option:hover .mood-emoji-large {
+  transform: scale(1.2) rotate(10deg);
+}
+
+.mood-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.mood-confirmation {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.selected-mood {
+  margin-bottom: 24px;
+}
+
+.selected-emoji {
+  font-size: 64px;
+  margin-bottom: 16px;
+  animation: selectedEmojiBounce 1s ease-out;
+}
+
+@keyframes selectedEmojiBounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.selected-mood h4 {
+  margin: 0 0 8px 0;
+  color: #1a1a1a;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.selected-mood p {
+  margin: 0;
+  color: #5f6368;
+  font-size: 14px;
+}
+
+.confirmation-message {
+  background: #f8f9fa;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid #e0e0e0;
+}
+
+.positive-message {
+  color: #34a853;
+}
+
+.concern-message {
+  color: #ea4335;
+}
+
+.message-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+}
+
+.confirmation-message p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.retry-button {
+  padding: 12px 24px;
+  background: #f8f9fa;
+  color: #5f6368;
+  border: 1px solid #dadce0;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #f1f3f4;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-button {
+  padding: 12px 24px;
+  color: white;
+  border: none;
+  border-radius: 25px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(66, 133, 244, 0.3);
+}
+
+.confirm-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(66, 133, 244, 0.4);
+}
+
+.mood-footer {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.wellness-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5f6368;
+  font-size: 12px;
+  text-align: center;
+  justify-content: center;
+}
+
+.tip-icon {
+  font-size: 16px;
+  animation: tipSparkle 2s ease-in-out infinite;
+}
+
+@keyframes tipSparkle {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .mood-tracker-card {
+    margin: 0 20px;
+    padding: 24px 20px;
+  }
+
+  .mood-options {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .mood-option {
+    padding: 16px 12px;
+  }
+
+  .mood-emoji-large {
+    font-size: 28px;
+  }
+
+  .mood-label {
+    font-size: 11px;
+  }
+
+  .confirmation-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .retry-button,
+  .confirm-button {
+    width: 100%;
+  }
+
+  .selected-emoji {
+    font-size: 48px;
+  }
+}
+
+@media (max-width: 400px) {
+  .mood-options {
+    grid-template-columns: 1fr;
+  }
+}
