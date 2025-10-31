@@ -1,24 +1,47 @@
 import React, { useState, useEffect } from 'react';
 import './HealthDashboard.css';
 import HealthDataService from '../../services/HealthDataService';
+import RealHealthDataService from '../../services/RealHealthDataService';
+import HealthDataConnector from '../HealthDataConnector/HealthDataConnector';
 
 const HealthDashboard = () => {
   const [healthData, setHealthData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showConnector, setShowConnector] = useState(false);
+  const [dataSource, setDataSource] = useState('mock'); // 'mock' or 'real'
   const [selectedMetric, setSelectedMetric] = useState('overview');
   const [refreshing, setRefreshing] = useState(false);
+  const [realDataAvailable, setRealDataAvailable] = useState(false);
 
   useEffect(() => {
     loadHealthData();
+    checkRealDataAvailability();
     const interval = setInterval(loadHealthData, 60000); // Refresh every minute
     return () => clearInterval(interval);
   }, []);
 
+  const checkRealDataAvailability = () => {
+    const availableProviders = RealHealthDataService.getAvailableProviders();
+    const connectedProviders = availableProviders.filter(p => p.connected);
+    setRealDataAvailable(connectedProviders.length > 0);
+  };
+
   const loadHealthData = async () => {
     try {
       setRefreshing(true);
-      const data = await HealthDataService.getAllHealthData();
+
+      let data;
+      if (realDataAvailable) {
+        // Load real health data
+        data = await RealHealthDataService.getAllHealthData();
+        setDataSource('real');
+      } else {
+        // Fall back to mock data
+        data = await HealthDataService.getAllHealthData();
+        setDataSource('mock');
+      }
+
       setHealthData(data);
       setError(null);
     } catch (err) {
@@ -27,6 +50,26 @@ const HealthDashboard = () => {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleDataConnected = (data) => {
+    console.log('Health data connected:', data);
+    setRealDataAvailable(true);
+    loadHealthData();
+  };
+
+  const handleConnectionError = (provider, error) => {
+    console.error(`Connection error for ${provider}:`, error);
+    setError(`Failed to connect to ${provider}: ${error.message}`);
+  };
+
+  const toggleDataSource = () => {
+    if (dataSource === 'real') {
+      setDataSource('mock');
+      loadHealthData();
+    } else {
+      setShowConnector(true);
     }
   };
 
@@ -362,6 +405,24 @@ const HealthDashboard = () => {
       <div className="dashboard-header">
         <h2>🏥 Health Dashboard</h2>
         <p>Real-time health metrics and mood prediction analysis</p>
+        <div className="data-controls">
+          <div className="data-source-toggle">
+            <button
+              className={`toggle-btn ${dataSource === 'real' ? 'active' : ''}`}
+              onClick={toggleDataSource}
+            >
+              {dataSource === 'real' ? '🟢 Real Data' : '🟡 Mock Data'}
+            </button>
+            {dataSource === 'real' && (
+              <span className="connection-indicator">
+                {realDataAvailable ? '✅ Connected' : '🔌 Not Connected'}
+              </span>
+            )}
+          </div>
+          <button className="refresh-btn" onClick={refreshData}>
+            {refreshing ? '🔄 Refreshing...' : '🔄 Refresh'}
+          </button>
+        </div>
         <div className="last-updated">
           Last updated: {new Date(healthData?.lastUpdated).toLocaleString()}
         </div>
@@ -380,6 +441,20 @@ const HealthDashboard = () => {
         <div className="data-sources">
           <h4>Data Sources</h4>
           <div className="source-list">
+            <div className="source-item">
+              <span className="source-name">Mode:</span>
+              <span className="source-description">
+                {dataSource === 'real' ? 'Real-time data from connected apps' : 'Simulated demo data'}
+              </span>
+            </div>
+            {dataSource === 'real' && realDataAvailable && (
+              <div className="source-item">
+                <span className="source-name">Connected Apps:</span>
+                <span className="source-description">
+                  Real-time synchronization active
+                </span>
+              </div>
+            )}
             {Object.entries(healthData?.dataSources || {}).map(([source, description]) => (
               <div key={source} className="source-item">
                 <span className="source-name">{source.charAt(0).toUpperCase() + source.slice(1)}:</span>
@@ -389,6 +464,24 @@ const HealthDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Health Data Connector Modal */}
+      {showConnector && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <HealthDataConnector
+              onDataConnected={handleDataConnected}
+              onConnectionError={handleConnectionError}
+            />
+            <button
+              className="close-connector-btn"
+              onClick={() => setShowConnector(false)}
+            >
+              ✕ Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
