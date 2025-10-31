@@ -51,6 +51,7 @@ const HealthDashboard = () => {
       case 'data:updated':
         // Update dashboard with MCP processed data
         if (data.source === 'mcp-screenshot-processor') {
+          console.log('🔄 Updating dashboard with MCP data:', data);
           setHealthData(data);
           setDataSource('mcp');
           setMcpDataAvailable(true);
@@ -61,7 +62,23 @@ const HealthDashboard = () => {
       case 'insights:generated':
         // Update with enriched data containing insights
         if (data.source === 'mcp-screenshot-processor') {
+          console.log('🧠 Updating dashboard with insights:', data);
           setHealthData(data);
+          setDataSource('mcp');
+          setMcpDataAvailable(true);
+          setError(null);
+          setLoading(false);
+        }
+        break;
+      case 'workflow:completed':
+        // Handle workflow completion - automatically switch to MCP data
+        if (data.result && data.result.source === 'mcp-screenshot-processor') {
+          console.log('✅ Workflow completed, switching to MCP data:', data.result);
+          setHealthData(data.result);
+          setDataSource('mcp');
+          setMcpDataAvailable(true);
+          setError(null);
+          setLoading(false);
         }
         break;
       case 'workflow:error':
@@ -177,6 +194,15 @@ const HealthDashboard = () => {
   const renderOverviewCard = () => {
     if (!healthData) return null;
 
+    console.log('🎯 Rendering mood card with data:', {
+      dataSource,
+      mood: healthData.mood,
+      activity: healthData.activity?.steps,
+      hasMoodData: !!healthData.mood,
+      moodPrediction: healthData.mood?.prediction,
+      moodScore: healthData.mood?.score
+    });
+
     const { mood } = healthData;
     return (
       <div className="metric-card mood-overview">
@@ -257,6 +283,13 @@ const HealthDashboard = () => {
 
   const renderActivityCard = () => {
     if (!healthData?.activity) return null;
+
+    console.log('🏃 Rendering activity card with data:', {
+      dataSource,
+      activity: healthData.activity,
+      steps: healthData.activity?.steps,
+      source: healthData.source
+    });
 
     const { activity } = healthData;
     return (

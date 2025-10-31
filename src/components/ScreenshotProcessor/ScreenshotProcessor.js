@@ -45,19 +45,30 @@ const ScreenshotProcessor = ({ onDataProcessed, onError }) => {
 
     switch (event) {
       case 'workflow:started':
-        setWorkflowStatus('processing');
+        setWorkflowStatus('🚀 Starting AI Vision analysis...');
         break;
       case 'workflow:processing':
-        setWorkflowStatus(data.message);
+        // Show more specific processing status
+        if (data.message) {
+          if (data.message.includes('AI')) {
+            setWorkflowStatus('🤖 ' + data.message);
+          } else if (data.message.includes('Analyzing')) {
+            setWorkflowStatus('🔍 ' + data.message);
+          } else if (data.message.includes('structuring')) {
+            setWorkflowStatus('📊 ' + data.message);
+          } else {
+            setWorkflowStatus('⚙️ ' + data.message);
+          }
+        }
         break;
       case 'workflow:completed':
-        setWorkflowStatus('completed');
+        setWorkflowStatus('✅ Analysis complete!');
         if (onDataProcessed) {
           onDataProcessed(data.result);
         }
         break;
       case 'workflow:error':
-        setWorkflowStatus('error');
+        setWorkflowStatus('❌ Processing failed');
         if (onError) {
           onError(data.error);
         }
@@ -246,8 +257,8 @@ const ScreenshotProcessor = ({ onDataProcessed, onError }) => {
   return (
     <div className="screenshot-processor">
       <div className="processor-header">
-        <h3>📸 Mobile App Screenshot Processor</h3>
-        <p>Take screenshots of your health apps and process them with AI</p>
+        <h3>📸 AI-Powered Health Screenshot Analyzer</h3>
+        <p>Extract real health data from your app screenshots using AI Vision Analysis</p>
       </div>
 
       <div className="processor-content">
@@ -288,9 +299,12 @@ const ScreenshotProcessor = ({ onDataProcessed, onError }) => {
 
             {isProcessing ? (
               <div className="processing-state">
-                <div className="spinner">🔄</div>
-                <p>Processing screenshot...</p>
+                <div className="spinner">🤖</div>
+                <p><strong>AI Vision is analyzing your screenshot...</strong></p>
                 <p className="status">{workflowStatus}</p>
+                <p style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '8px' }}>
+                  This uses real AI to extract health metrics from your image
+                </p>
               </div>
             ) : (
               <div className="upload-state">
@@ -298,6 +312,9 @@ const ScreenshotProcessor = ({ onDataProcessed, onError }) => {
                 <h4>Drop health app screenshot here</h4>
                 <p>or click to select file</p>
                 <p className="file-types">Supports: PNG, JPG, JPEG, WebP</p>
+                <p style={{ fontSize: '0.85rem', color: '#059669', marginTop: '8px' }}>
+                  ✨ Powered by AI Vision Analysis
+                </p>
               </div>
             )}
           </div>
