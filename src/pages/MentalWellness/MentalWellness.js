@@ -4,6 +4,9 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import VideoRecommendation from '../../components/VideoRecommendation/VideoRecommendation';
 import MoodTracker from '../../components/MoodTracker/MoodTracker';
 import DoctorReferral from '../../components/DoctorReferral/DoctorReferral';
+import VideoScraperService from '../../services/VideoScraperService';
+import LanguageService from '../../services/LanguageService';
+import AIPersonalityService from '../../services/AIPersonalityService';
 
 const MentalWellness = () => {
   const [messages, setMessages] = useState([]);
@@ -15,6 +18,11 @@ const MentalWellness = () => {
   const [userScore, setUserScore] = useState(100);
   const [showDoctorReferral, setShowDoctorReferral] = useState(false);
   const [conversationPhase, setConversationPhase] = useState('greeting');
+  const [currentLanguage, setCurrentLanguage] = useState('en');
+  const [languageDetected, setLanguageDetected] = useState(false);
+  const [isScrapingVideos, setIsScrapingVideos] = useState(false);
+  const [userEmotionalState, setUserEmotionalState] = useState(null);
+  const [typingIndicator, setTypingIndicator] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Get API key from environment or use demo mode
@@ -38,71 +46,125 @@ const MentalWellness = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Initialize conversation with a greeting
+    // Initialize conversation with a personalized greeting
+    const greeting = LanguageService.translate('greeting', currentLanguage);
     const initialMessage = {
       id: Date.now(),
-      text: "Hi! I'm your mental wellness companion. How are you feeling today? 🌟",
+      text: greeting,
       sender: 'bot',
-      timestamp: new Date()
+      timestamp: new Date(),
+      language: currentLanguage
     };
     setMessages([initialMessage]);
-  }, []);
+  }, [currentLanguage]);
 
   const analyzeSentiment = async (text) => {
+    // Enhanced emotional analysis using AI Personality Service
+    const emotionalState = AIPersonalityService.analyzeEmotionalState(text, messages);
+    setUserEmotionalState(emotionalState);
+
+    // Detect language if not already detected
+    if (!languageDetected) {
+      const detectedLang = LanguageService.detectLanguage(text);
+      if (detectedLang !== 'en') {
+        setCurrentLanguage(detectedLang);
+        setLanguageDetected(true);
+
+        // Add language detection message
+        const langMessage = {
+          id: Date.now(),
+          text: LanguageService.formatTranslation(
+            LanguageService.translate('languageDetected', detectedLang),
+            { language: LanguageService.getLanguageInfo(detectedLang).name }
+          ),
+          sender: 'bot',
+          timestamp: new Date(),
+          language: detectedLang,
+          isSystem: true
+        };
+        setMessages(prev => [...prev, langMessage]);
+      }
+    }
+
     if (!genAI) {
-      // Demo mode - simple keyword-based sentiment analysis
-      const lowerText = text.toLowerCase();
-      if (lowerText.includes('sad') || lowerText.includes('depressed') || lowerText.includes('bad') ||
-          lowerText.includes('awful') || lowerText.includes('terrible') || lowerText.includes('angry')) {
-        return 'negative';
-      }
-      if (lowerText.includes('happy') || lowerText.includes('good') || lowerText.includes('great') ||
-          lowerText.includes('wonderful') || lowerText.includes('amazing') || lowerText.includes('love')) {
-        return 'positive';
-      }
-      return 'neutral';
+      // Enhanced demo mode with AI Personality Service
+      return emotionalState.primaryEmotion;
     }
 
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-      const prompt = `Analyze the sentiment of this text and respond with only one word: positive, negative, or neutral. Text: "${text}"`;
+      const prompt = `Analyze the emotional state of this text with nuance. Consider context, intensity, and emotional complexity. Respond with one of these: joy, gratitude, hope, neutral, sad, stressed, lonely, angry, anxious, or depressed. Text: "${text}"`;
       const result = await model.generateContent(prompt);
       const response = await result.response;
-      const sentimentText = response.text().toLowerCase().trim();
+      const emotionText = response.text().toLowerCase().trim();
 
-      if (sentimentText.includes('positive')) return 'positive';
-      if (sentimentText.includes('negative')) return 'negative';
-      return 'neutral';
+      // Map Gemini emotions to our system
+      const emotionMapping = {
+        'joy': 'positive',
+        'gratitude': 'positive',
+        'hope': 'positive',
+        'neutral': 'neutral',
+        'sad': 'sad',
+        'stressed': 'stressed',
+        'lonely': 'sad',
+        'angry': 'stressed',
+        'anxious': 'stressed',
+        'depressed': 'depression'
+      };
+
+      return emotionMapping[emotionText] || emotionalState.primaryEmotion;
     } catch (error) {
-      console.error('Sentiment analysis error:', error);
-      return 'neutral';
+      console.error('Advanced sentiment analysis error:', error);
+      return emotionalState.primaryEmotion;
     }
   };
 
   const generateBotResponse = async (userMessage, currentSentiment) => {
+    // Enhanced response generation using AI Personality Service
+    if (userEmotionalState) {
+      const contextualResponse = AIPersonalityService.generateContextualResponse(
+        userMessage,
+        userEmotionalState,
+        messages,
+        currentLanguage
+      );
+
+      // Store conversation memory
+      AIPersonalityService.updateConversationMemory(
+        'user_' + Date.now(),
+        userMessage,
+        contextualResponse,
+        userEmotionalState
+      );
+
+      return contextualResponse;
+    }
+
     if (!genAI) {
-      // Demo mode responses
+      // Enhanced demo mode responses with multi-language support
       const lowerMessage = userMessage.toLowerCase();
 
       if (conversationPhase === 'greeting') {
-        if (currentSentiment === 'negative') {
-          return "I'm really sorry to hear that you're feeling down. It sounds like you're going through a tough time. Sometimes watching some uplifting content can help brighten our mood even a little bit. Would you be open to trying some funny or heartwarming videos? I'm here for you either way.";
+        if (currentSentiment === 'depression' || currentSentiment === 'anxiety') {
+          return LanguageService.translate('sad', currentLanguage);
+        } else if (currentSentiment === 'sad' || currentSentiment === 'stressed') {
+          return LanguageService.translate(currentSentiment === 'sad' ? 'sad' : 'stressed', currentLanguage);
         } else if (currentSentiment === 'positive') {
-          return "That's wonderful to hear! It's great that you're feeling good today. I'm here to chat whenever you need a friend. What's been making you feel positive today?";
+          return LanguageService.translate('happy', currentLanguage);
         } else {
-          return "Thank you for sharing that with me. I'm here to support you no matter how you're feeling. Sometimes when we're not sure how we feel, taking a small break can help. How can I best support you right now?";
+          return LanguageService.translate('neutral', currentLanguage);
         }
       } else if (conversationPhase === 'post-video') {
         if (lowerMessage.includes('good') || lowerMessage.includes('better') || lowerMessage.includes('happy')) {
-          return "I'm so glad to hear that the videos helped lift your mood! That's wonderful. Remember, I'm always here if you need to talk or if you'd like more uplifting content in the future. Take care of yourself!";
+          return LanguageService.translate('postVideoPositive', currentLanguage);
         } else if (lowerMessage.includes('bad') || lowerMessage.includes('sad') || lowerMessage.includes('no')) {
-          return "I understand that the videos didn't help as much as we'd hoped, and that's okay. Everyone's journey is different, and it's brave of you to share how you're really feeling. Sometimes professional support can make a big difference. Would you like me to suggest some mental health resources?";
+          return LanguageService.translate('postVideoNegative', currentLanguage);
         } else {
-          return "Thank you for being honest about how you're feeling. Whatever you're experiencing is valid. I'm here to support you through this. Is there anything specific you'd like to talk about or any other way I can help?";
+          return LanguageService.translate('continueChat', currentLanguage);
         }
       }
 
-      return "I'm here to support you. Tell me more about how you're feeling.";
+      return LanguageService.translate('typing', currentLanguage);
     }
 
     try {
@@ -110,66 +172,43 @@ const MentalWellness = () => {
 
       let prompt = '';
       if (conversationPhase === 'greeting') {
-        prompt = `You are a mental wellness assistant. The user said: "${userMessage}".
-        Their sentiment appears to be ${currentSentiment}.
-        Respond naturally and supportively. If they seem to be feeling down,
-        gently suggest that watching some uplifting content might help.
-        Keep your response under 100 words and be caring.`;
+        prompt = `You are Sakhi, an empathetic mental wellness companion. The user said: "${userMessage}".
+        Their emotional state appears to be ${currentSentiment}.
+
+        Respond naturally and supportively in ${currentLanguage === 'en' ? 'English' : currentLanguage}.
+        Consider cultural context and emotional intelligence.
+        If they seem to be feeling down, gently suggest that watching some uplifting content might help.
+        Keep your response conversational (80-120 words) and show genuine care.
+        Use appropriate emotional markers and cultural sensitivity.`;
       } else if (conversationPhase === 'post-video') {
         prompt = `The user just finished watching some uplifting videos.
         They said: "${userMessage}".
-        Ask them how they're feeling now and if the content helped improve their mood.
-        Be encouraging and supportive.`;
+        Respond in ${currentLanguage === 'en' ? 'English' : currentLanguage}.
+        Ask about their current emotional state and whether the content helped.
+        Be encouraging and emotionally intelligent. Show that you care about their wellbeing.`;
       }
 
       const result = await model.generateContent(prompt);
       const response = await result.response;
       return response.text();
     } catch (error) {
-      console.error('Bot response error:', error);
-      return "I'm here to support you. Would you like to try watching some uplifting content?";
+      console.error('Advanced bot response error:', error);
+      return LanguageService.translate('typing', currentLanguage);
     }
   };
 
-  const getFunnyVideos = () => {
-    // Pre-curated list of uplifting/funny videos
-    return [
-      {
-        id: 1,
-        title: "Cute Cats Doing Funny Things",
-        url: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-        platform: "youtube",
-        thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/hqdefault.jpg"
-      },
-      {
-        id: 2,
-        title: "Baby Laughing Hysterically",
-        url: "https://www.youtube.com/embed/TP4_l3QG_qQ",
-        platform: "youtube",
-        thumbnail: "https://img.youtube.com/vi/TP4_l3QG_qQ/hqdefault.jpg"
-      },
-      {
-        id: 3,
-        title: "Funny Animal Moments",
-        url: "https://www.youtube.com/embed/7K0b6cqw1Xk",
-        platform: "youtube",
-        thumbnail: "https://img.youtube.com/vi/7K0b6cqw1Xk/hqdefault.jpg"
-      },
-      {
-        id: 4,
-        title: "Try Not to Laugh Challenge",
-        url: "https://www.youtube.com/embed/5vg6cphQG8M",
-        platform: "youtube",
-        thumbnail: "https://img.youtube.com/vi/5vg6cphQG8M/hqdefault.jpg"
-      },
-      {
-        id: 5,
-        title: "Puppies Playing in Park",
-        url: "https://www.youtube.com/embed/z1U_A2kKx9Y",
-        platform: "youtube",
-        thumbnail: "https://img.youtube.com/vi/z1U_A2kKx9Y/hqdefault.jpg"
-      }
-    ];
+  const getVideos = async (mood = 'sad') => {
+    setIsScrapingVideos(true);
+    try {
+      // Dynamic video scraping based on mood and language
+      const videos = await VideoScraperService.getVideosByMood(mood, currentLanguage);
+      setIsScrapingVideos(false);
+      return videos;
+    } catch (error) {
+      console.error('Video scraping error:', error);
+      setIsScrapingVideos(false);
+      return VideoScraperService.getFallbackYouTubeVideos().slice(0, 5);
+    }
   };
 
   const handleSendMessage = async (e) => {
@@ -180,51 +219,80 @@ const MentalWellness = () => {
       id: Date.now(),
       text: input,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
+      language: currentLanguage
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    setTypingIndicator(true);
 
     try {
-      // Analyze sentiment
+      // Enhanced sentiment analysis with emotional intelligence
       const detectedSentiment = await analyzeSentiment(input);
       setSentiment(detectedSentiment);
 
-      // Generate bot response
-      const botResponseText = await generateBotResponse(input, detectedSentiment);
+      // Show typing indicator with natural delay
+      setTimeout(async () => {
+        setTypingIndicator(false);
 
-      const botMessage = {
-        id: Date.now() + 1,
-        text: botResponseText,
-        sender: 'bot',
-        timestamp: new Date()
-      };
+        // Generate intelligent, contextual response
+        const botResponseText = await generateBotResponse(input, detectedSentiment);
 
-      setMessages(prev => [...prev, botMessage]);
+        const botMessage = {
+          id: Date.now() + 1,
+          text: botResponseText,
+          sender: 'bot',
+          timestamp: new Date(),
+          language: currentLanguage,
+          emotionalContext: userEmotionalState
+        };
 
-      // If sentiment is negative and it's the greeting phase, suggest videos
-      if (detectedSentiment === 'negative' && conversationPhase === 'greeting') {
-        setTimeout(() => {
-          const suggestionMessage = {
-            id: Date.now() + 2,
-            text: "I think watching some uplifting content might help brighten your mood! Would you like me to show you some funny and heartwarming videos? 😊",
-            sender: 'bot',
-            timestamp: new Date(),
-            isVideoSuggestion: true
-          };
-          setMessages(prev => [...prev, suggestionMessage]);
-        }, 1000);
-      }
+        setMessages(prev => [...prev, botMessage]);
+
+        // Enhanced video suggestion logic based on emotional state
+        if ((detectedSentiment === 'negative' || detectedSentiment === 'sad' || detectedSentiment === 'stressed') &&
+            conversationPhase === 'greeting') {
+          setTimeout(() => {
+            const suggestionMessage = {
+              id: Date.now() + 2,
+              text: LanguageService.translate('videoSuggestion', currentLanguage),
+              sender: 'bot',
+              timestamp: new Date(),
+              isVideoSuggestion: true,
+              language: currentLanguage
+            };
+            setMessages(prev => [...prev, suggestionMessage]);
+          }, 1500);
+        }
+
+        // Handle high urgency emotional states
+        if (userEmotionalState?.urgency === 'high' && (detectedSentiment === 'depression' || detectedSentiment === 'anxiety')) {
+          setTimeout(() => {
+            const urgentMessage = {
+              id: Date.now() + 3,
+              text: "I'm concerned about how you're feeling. Your wellbeing is important. Please consider reaching out to a mental health professional. I can provide you with resources right now.",
+              sender: 'bot',
+              timestamp: new Date(),
+              isUrgentSupport: true,
+              language: currentLanguage
+            };
+            setMessages(prev => [...prev, urgentMessage]);
+          }, 2000);
+        }
+
+      }, 1500); // Natural typing delay
 
     } catch (error) {
-      console.error('Message handling error:', error);
+      console.error('Enhanced message handling error:', error);
+      setTypingIndicator(false);
       const errorMessage = {
         id: Date.now() + 1,
-        text: "I'm having trouble connecting right now, but I'm here for you. Would you like to try again?",
+        text: LanguageService.translate('typing', currentLanguage) + " I'm having trouble connecting, but I'm here for you.",
         sender: 'bot',
-        timestamp: new Date()
+        timestamp: new Date(),
+        language: currentLanguage
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -232,19 +300,35 @@ const MentalWellness = () => {
     }
   };
 
-  const handleVideoSuggestionAccept = () => {
-    const videos = getFunnyVideos();
-    setCurrentVideos(videos);
-    setShowVideos(true);
-    setConversationPhase('watching');
+  const handleVideoSuggestionAccept = async () => {
+    try {
+      // Dynamic video fetching based on emotional state and language
+      const videos = await getVideos(sentiment);
+      setCurrentVideos(videos);
+      setShowVideos(true);
+      setConversationPhase('watching');
 
-    const message = {
-      id: Date.now(),
-      text: "Great! Here are some uplifting videos for you. Take your time watching them, and let me know when you're done. 💫",
-      sender: 'bot',
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, message]);
+      const message = {
+        id: Date.now(),
+        text: isScrapingVideos
+          ? LanguageService.translate('typing', currentLanguage) + " Finding perfect videos for you..."
+          : "Great! Here are some uplifting videos for you. Take your time watching them, and let me know when you're done. 💫",
+        sender: 'bot',
+        timestamp: new Date(),
+        language: currentLanguage
+      };
+      setMessages(prev => [...prev, message]);
+    } catch (error) {
+      console.error('Video loading error:', error);
+      const errorMessage = {
+        id: Date.now(),
+        text: "I'm having trouble loading videos right now. Let's continue our conversation instead.",
+        sender: 'bot',
+        timestamp: new Date(),
+        language: currentLanguage
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   const handleVideoSuggestionDecline = () => {
@@ -344,6 +428,19 @@ const MentalWellness = () => {
             </div>
           </div>
         ))}
+        {typingIndicator && (
+          <div className="message bot">
+            <div className="message-content">
+              <div className="typing-indicator">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <div className="typing-text">{LanguageService.translate('typing', currentLanguage)}</div>
+            </div>
+          </div>
+        )}
+
         {isLoading && (
           <div className="message bot">
             <div className="message-content">
