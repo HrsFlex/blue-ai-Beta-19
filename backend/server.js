@@ -3,6 +3,8 @@ const cors = require('cors');
 const WebSocket = require('ws');
 const http = require('http');
 const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +17,32 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Create audio directory if it doesn't exist
+const audioDir = path.join(__dirname, 'public', 'audio');
+if (!fs.existsSync(audioDir)) {
+  fs.mkdirSync(audioDir, { recursive: true });
+}
+
+// Serve static files from public directory
+app.use(express.static('public'));
+
+// Serve audio files with proper MIME type
+app.get('/audio/:filename', (req, res) => {
+  const filename = req.params.filename;
+  const filePath = path.join(audioDir, filename);
+
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.sendFile(filePath);
+  } else {
+    // If file doesn't exist, return a default audio file or 404
+    res.status(404).json({
+      success: false,
+      message: 'Audio file not found'
+    });
+  }
+});
 
 // Basic API info endpoint
 app.get('/api', (req, res) => {

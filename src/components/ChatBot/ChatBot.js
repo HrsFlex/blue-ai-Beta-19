@@ -506,16 +506,29 @@ const ChatBot = () => {
 
   const stop = async () => {
     try {
-      const mp3Blob = await Mp3Recorder.stop().getMp3();
-      if (mp3Blob && mp3Blob.size > 0) {
-        try {
-          const audioURL = URL.createObjectURL(mp3Blob);
-          console.log("Audio recorded:", audioURL);
-        } catch (urlError) {
-          console.warn("Failed to create object URL for audio:", urlError);
+      // First stop the recording
+      if (Mp3Recorder && typeof Mp3Recorder.stop === 'function') {
+        Mp3Recorder.stop();
+      }
+
+      // Wait a moment for the recording to finalize
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Then try to get the MP3
+      if (Mp3Recorder && typeof Mp3Recorder.getMp3 === 'function') {
+        const mp3Blob = await Mp3Recorder.getMp3();
+        if (mp3Blob && mp3Blob.size > 0) {
+          try {
+            const audioURL = URL.createObjectURL(mp3Blob);
+            console.log("Audio recorded:", audioURL);
+          } catch (urlError) {
+            console.warn("Failed to create object URL for audio:", urlError);
+          }
+        } else {
+          console.warn("No audio data recorded");
         }
       } else {
-        console.warn("No audio data recorded");
+        console.warn("Mp3Recorder not available");
       }
 
       setIsRecording(false);
@@ -525,7 +538,7 @@ const ChatBot = () => {
       getResponse(transcript);
       capture();
     } catch (e) {
-      console.error(e);
+      console.error("Error stopping recording:", e);
     }
   };
 
