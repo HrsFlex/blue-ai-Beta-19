@@ -1,0 +1,159 @@
+
+> ttt@0.1.0 start
+> react-scripts start
+
+(node:77472) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:77472) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Compiled with warnings.
+
+Failed to parse source map from '/home/hrsflex/SakhiClient/node_modules/@mediapipe/tasks-vision/vision_bundle_mjs.js.map' file: Error: ENOENT: no such file or directory, open '/home/hrsflex/SakhiClient/node_modules/@mediapipe/tasks-vision/vision_bundle_mjs.js.map'
+
+[eslint] 
+src/components/ChatBot/ChatBot.js
+  Line 197:69:  React Hook useMemo has a missing dependency: 'gltf.scene'. Either include it or remove the dependency array                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  Line 224:6:   React Hook useEffect has missing dependencies: 'morphTargetDictionaryBody', 'morphTargetDictionaryLowerTeeth', 'setAudioSource', 'setSpeak', and 'text'. Either include them or remove the dependency array. If 'setAudioSource' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  Line 264:6:   React Hook useEffect has missing dependencies: 'idleClips', 'mixer', and 'morphTargetDictionaryBody'. Either include them or remove the dependency array                                                                                                                                                                               react-hooks/exhaustive-deps
+  Line 275:6:   React Hook useEffect has missing dependencies: 'clips' and 'mixer'. Either include them or remove the dependency array                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+src/components/HealthDashboard/HealthDashboard.js
+  Line 9:10:  'selectedMetric' is assigned a value but never used     no-unused-vars
+  Line 9:26:  'setSelectedMetric' is assigned a value but never used  no-unused-vars
+
+src/components/Navbar/Navbar.js
+  Line 14:8:  'logo' is defined but never used  no-unused-vars
+
+src/config/aiConfig.js
+  Line 21:7:  '_shiftString' is assigned a value but never used  no-unused-vars
+
+src/converter.js
+  Line 3:2:    'BooleanKeyframeTrack' is defined but never used  no-unused-vars
+  Line 4:2:    'ColorKeyframeTrack' is defined but never used    no-unused-vars
+  Line 6:2:    'Vector3' is defined but never used               no-unused-vars
+  Line 7:2:    'VectorKeyframeTrack' is defined but never used   no-unused-vars
+  Line 31:27:  Expected '!==' and instead saw '!='               eqeqeq
+  Line 43:19:  Expected '===' and instead saw '=='               eqeqeq
+  Line 58:9:   'flag' is assigned a value but never used         no-unused-vars
+
+src/index.js
+  Line 4:8:  'App' is defined but never used  no-unused-vars
+
+src/pages/Awards/Awards.js
+  Line 67:10:   'availableRewards' is assigned a value but never used  no-unused-vars
+  Line 69:23:   'setTargetCoins' is assigned a value but never used    no-unused-vars
+  Line 114:13:  'res' is assigned a value but never used               no-unused-vars
+
+src/pages/Chat/Chat.js
+  Line 51:11:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 67:19:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/pages/Diet/Diet.js
+  Line 24:70:  Unnecessary escape character: \•  no-useless-escape
+  Line 24:95:  Unnecessary escape character: \-  no-useless-escape
+
+src/pages/Login/Login.js
+  Line 55:9:    img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                                                                                          jsx-a11y/alt-text
+  Line 135:19:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles. Learn more: https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/anchor-is-valid.md  jsx-a11y/anchor-is-valid
+
+src/pages/Plans/Plans.js
+  Line 164:19:  Using target="_blank" without rel="noreferrer" (which implies rel="noopener") is a security risk in older browsers: see https://mathiasbynens.github.io/rel-noopener/#recommendations  react/jsx-no-target-blank
+
+src/pages/Quiz/Quiz.js
+  Line 1:20:  'useEffect' is defined but never used  no-unused-vars
+
+src/pages/Reports/Reports.js
+  Line 27:21:  Unnecessary escape character: \•  no-useless-escape
+  Line 28:21:  Unnecessary escape character: \-  no-useless-escape
+
+src/pages/SearchDocs/SearchDocs.js
+  Line 11:7:   'map_id' is assigned a value but never used                                                                            no-unused-vars
+  Line 27:6:   React Hook useEffect has a missing dependency: 'initializeLocation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 93:47:  Expected '===' and instead saw '=='                                                                                    eqeqeq
+  Line 93:63:  Unexpected mix of '&' and '|'. Use parentheses to clarify the intended order of operations                             no-mixed-operators
+  Line 93:69:  Unexpected mix of '&' and '|'. Use parentheses to clarify the intended order of operations                             no-mixed-operators
+  Line 126:6:  React Hook useEffect has a missing dependency: 'zoom'. Either include it or remove the dependency array                react-hooks/exhaustive-deps
+
+src/pages/SignUp/SignUp.js
+  Line 1:37:  'useEffect' is defined but never used                                                                      no-unused-vars
+  Line 9:7:   'classNames' is assigned a value but never used                                                            no-unused-vars
+  Line 84:9:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in ./node_modules/@mediapipe/tasks-vision/vision_bundle.mjs
+Module Warning (from ./node_modules/source-map-loader/dist/cjs.js):
+Failed to parse source map from '/home/hrsflex/SakhiClient/node_modules/@mediapipe/tasks-vision/vision_bundle_mjs.js.map' file: Error: ENOENT: no such file or directory, open '/home/hrsflex/SakhiClient/node_modules/@mediapipe/tasks-vision/vision_bundle_mjs.js.map'
+
+WARNING in [eslint] 
+src/components/ChatBot/ChatBot.js
+  Line 197:69:  React Hook useMemo has a missing dependency: 'gltf.scene'. Either include it or remove the dependency array                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+  Line 224:6:   React Hook useEffect has missing dependencies: 'morphTargetDictionaryBody', 'morphTargetDictionaryLowerTeeth', 'setAudioSource', 'setSpeak', and 'text'. Either include them or remove the dependency array. If 'setAudioSource' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+  Line 264:6:   React Hook useEffect has missing dependencies: 'idleClips', 'mixer', and 'morphTargetDictionaryBody'. Either include them or remove the dependency array                                                                                                                                                                               react-hooks/exhaustive-deps
+  Line 275:6:   React Hook useEffect has missing dependencies: 'clips' and 'mixer'. Either include them or remove the dependency array                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+
+src/components/HealthDashboard/HealthDashboard.js
+  Line 9:10:  'selectedMetric' is assigned a value but never used     no-unused-vars
+  Line 9:26:  'setSelectedMetric' is assigned a value but never used  no-unused-vars
+
+src/components/Navbar/Navbar.js
+  Line 14:8:  'logo' is defined but never used  no-unused-vars
+
+src/config/aiConfig.js
+  Line 21:7:  '_shiftString' is assigned a value but never used  no-unused-vars
+
+src/converter.js
+  Line 3:2:    'BooleanKeyframeTrack' is defined but never used  no-unused-vars
+  Line 4:2:    'ColorKeyframeTrack' is defined but never used    no-unused-vars
+  Line 6:2:    'Vector3' is defined but never used               no-unused-vars
+  Line 7:2:    'VectorKeyframeTrack' is defined but never used   no-unused-vars
+  Line 31:27:  Expected '!==' and instead saw '!='               eqeqeq
+  Line 43:19:  Expected '===' and instead saw '=='               eqeqeq
+  Line 58:9:   'flag' is assigned a value but never used         no-unused-vars
+
+src/index.js
+  Line 4:8:  'App' is defined but never used  no-unused-vars
+
+src/pages/Awards/Awards.js
+  Line 67:10:   'availableRewards' is assigned a value but never used  no-unused-vars
+  Line 69:23:   'setTargetCoins' is assigned a value but never used    no-unused-vars
+  Line 114:13:  'res' is assigned a value but never used               no-unused-vars
+
+src/pages/Chat/Chat.js
+  Line 51:11:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+  Line 67:19:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+src/pages/Diet/Diet.js
+  Line 24:70:  Unnecessary escape character: \•  no-useless-escape
+  Line 24:95:  Unnecessary escape character: \-  no-useless-escape
+
+src/pages/Login/Login.js
+  Line 55:9:    img elements must have an alt prop, either with meaningful text, or an empty string for decorative images                                                                                                                                                                                                                                                          jsx-a11y/alt-text
+  Line 135:19:  The href attribute requires a valid value to be accessible. Provide a valid, navigable address as the href value. If you cannot provide a valid href, but still need the element to resemble a link, use a button and change it with appropriate styles. Learn more: https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/anchor-is-valid.md  jsx-a11y/anchor-is-valid
+
+src/pages/Plans/Plans.js
+  Line 164:19:  Using target="_blank" without rel="noreferrer" (which implies rel="noopener") is a security risk in older browsers: see https://mathiasbynens.github.io/rel-noopener/#recommendations  react/jsx-no-target-blank
+
+src/pages/Quiz/Quiz.js
+  Line 1:20:  'useEffect' is defined but never used  no-unused-vars
+
+src/pages/Reports/Reports.js
+  Line 27:21:  Unnecessary escape character: \•  no-useless-escape
+  Line 28:21:  Unnecessary escape character: \-  no-useless-escape
+
+src/pages/SearchDocs/SearchDocs.js
+  Line 11:7:   'map_id' is assigned a value but never used                                                                            no-unused-vars
+  Line 27:6:   React Hook useEffect has a missing dependency: 'initializeLocation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  Line 93:47:  Expected '===' and instead saw '=='                                                                                    eqeqeq
+  Line 93:63:  Unexpected mix of '&' and '|'. Use parentheses to clarify the intended order of operations                             no-mixed-operators
+  Line 93:69:  Unexpected mix of '&' and '|'. Use parentheses to clarify the intended order of operations                             no-mixed-operators
+  Line 126:6:  React Hook useEffect has a missing dependency: 'zoom'. Either include it or remove the dependency array                react-hooks/exhaustive-deps
+
+src/pages/SignUp/SignUp.js
+  Line 1:37:  'useEffect' is defined but never used                                                                      no-unused-vars
+  Line 9:7:   'classNames' is assigned a value but never used                                                            no-unused-vars
+  Line 84:9:  img elements must have an alt prop, either with meaningful text, or an empty string for decorative images  jsx-a11y/alt-text
+
+webpack compiled with 2 warnings

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiHome } from "react-icons/fi";
 import { SiPlanet } from "react-icons/si";
 import { BiSolidReport, BiLogOut } from "react-icons/bi";
+import { IoHeartCircle } from "react-icons/io5";
 import { FaUserDoctor } from "react-icons/fa6";
 import { MdOutlineFoodBank } from "react-icons/md";
 import { BsFillChatLeftTextFill } from "react-icons/bs";
@@ -20,42 +21,48 @@ const navigations = [
   },
   {
     id: 2,
+    name: "Health Dashboard",
+    path: "/health-dashboard",
+    Icon: ({ color }) => <IoHeartCircle size={25} color={color} />,
+  },
+  {
+    id: 3,
     name: "Plans",
     path: "/plans",
     Icon: ({ color }) => <SiPlanet size={25} color={color} />,
   },
   {
-    id: 3,
+    id: 4,
     name: "Reports",
     path: "/reports",
     Icon: ({ color }) => <BiSolidReport size={25} color={color} />,
   },
   {
-    id: 4,
+    id: 5,
     name: "Search Doctors",
     path: "/search-doctors",
     Icon: ({ color }) => <FaUserDoctor size={25} color={color} />,
   },
   {
-    id: 5,
+    id: 6,
     path: "/diet-plan",
     name: "Diet Plan",
     Icon: ({ color }) => <MdOutlineFoodBank size={25} color={color} />,
   },
   {
-    id: 6,
+    id: 7,
     path: "/chat",
     name: "Support Group",
     Icon: ({ color }) => <BsFillChatLeftTextFill size={25} color={color} />,
   },
   {
-    id: 8,
+    id: 9,
     path: "/rewards",
     name: "Rewards",
     Icon: ({ color }) => <FaAward size={25} color={color} />,
   },
   {
-    id: 7,
+    id: 8,
     name: "Emergency Call",
     Icon: ({ color }) => <BiSolidPhoneCall size={25} color={color} />,
   },
@@ -75,15 +82,15 @@ const Navbar = () => {
     <div className="py-6 px-4 w-[20vw] h-screen shadow-lg">
       <ToastContainer />
       <div className="flex items-center">
-      <h1 className="text-2xl text-teal-500 font-bold">.ai</h1>
-      <img src={logo} className="w-12 h-12 ml-2" />
+      <h1 className="text-2xl text-teal-500 font-bold">Blue.ai</h1>
+      {/* <img src={logo} className="w-12 h-12 ml-2" /> */}
       </div>
       <div className="mt-8">
         <div>
         {navigations.map((nav) => (
           <Link
             onClick={() => {
-              if (nav.id === 7) {
+              if (nav.id === 8) {
                 toast("Hold Tight! Help Being Sent");
               }
             }}

@@ -52,19 +52,33 @@ const _reconstructKey = () => {
   return decrypted;
 };
 
+// Safe base64 decoding function with fallback
+const _safeBase64Decode = (encodedString, fallback) => {
+  try {
+    if (!encodedString || typeof encodedString !== 'string') {
+      return fallback;
+    }
+    return atob(encodedString);
+  } catch (error) {
+    console.warn('Base64 decode failed, using fallback:', error.message);
+    return fallback;
+  }
+};
+
 // Final configuration extraction with validation
 const _extractConfig = () => {
+  // Use safe base64 decoding with fallbacks
   const config = {
     apiKey: _reconstructKey(),
     model: {
-      name: Buffer.from(_config.model.name, 'base64').toString(),
-      type: Buffer.from(_config.model.type, 'base64').toString(),
-      version: Buffer.from(_config.model.version, 'base64').toString(),
-      provider: Buffer.from(_config.model.provider, 'base64').toString()
+      name: _safeBase64Decode(_config.model.name, "Sakhi-Neural-Engine-v1"),
+      type: _safeBase64Decode(_config.model.type, "conventional-neural-network"),
+      version: _safeBase64Decode(_config.model.version, "2.5-flash"),
+      provider: _safeBase64Decode(_config.model.provider, "Sakhi AI Research")
     },
     endpoints: {
-      primary: Buffer.from(_config.endpoints.primary, 'base64').toString(),
-      fallback: Buffer.from(_config.endpoints.fallback, 'base64').toString()
+      primary: _safeBase64Decode(_config.endpoints.primary, "https://generativeai.googleapis.com/v1/models:"),
+      fallback: _safeBase64Decode(_config.endpoints.fallback, "https://ai.google.com/generation/")
     }
   };
 

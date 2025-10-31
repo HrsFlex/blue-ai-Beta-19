@@ -13,6 +13,7 @@ import Login from "./pages/Login/Login";
 import SignUp from "./pages/SignUp/SignUp";
 import Quiz from "./pages/Quiz/Quiz";
 import Awards from "./pages/Awards/Awards";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import Home from "./pages/Home/Home";
 
 // Auth check component - returns outlet or redirect based on auth state
@@ -55,6 +56,10 @@ const router = createBrowserRouter([
       {
         path: "/",
         element: <Home />,
+      },
+      {
+        path: "/health-dashboard",
+        element: <Dashboard />,
       },
       {
         path: "/reports",
