@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './DoctorReferral.css';
 
-const DoctorReferral = ({ onClose }) => {
+const DoctorReferral = ({ onClose, onBookAppointment }) => {
   const [selectedResource, setSelectedResource] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 
@@ -55,7 +55,13 @@ const DoctorReferral = ({ onClose }) => {
       experience: '10+ years',
       distance: '2.3 miles',
       rating: 4.8,
-      availability: 'Available this week'
+      availability: 'Available this week',
+      consultationFee: '$150',
+      telehealth: true,
+      contact: {
+        phone: '555-0123',
+        website: 'www.drsjohnson.com'
+      }
     },
     {
       name: 'Dr. Michael Chen',
@@ -63,7 +69,13 @@ const DoctorReferral = ({ onClose }) => {
       experience: '15+ years',
       distance: '3.1 miles',
       rating: 4.9,
-      availability: 'Available tomorrow'
+      availability: 'Available tomorrow',
+      consultationFee: '$200',
+      telehealth: true,
+      contact: {
+        phone: '555-0456',
+        website: 'www.drchenpsychiatry.com'
+      }
     },
     {
       name: 'Dr. Emily Rodriguez',
@@ -71,7 +83,13 @@ const DoctorReferral = ({ onClose }) => {
       experience: '8+ years',
       distance: '1.8 miles',
       rating: 4.7,
-      availability: 'Available today'
+      availability: 'Available today',
+      consultationFee: '$120',
+      telehealth: true,
+      contact: {
+        phone: '555-0789',
+        website: 'www.dremilyrodriguez.com'
+      }
     }
   ];
 
@@ -92,6 +110,16 @@ const DoctorReferral = ({ onClose }) => {
       } else if (selectedResource.website) {
         window.open(selectedResource.website, '_blank');
       }
+    }
+  };
+
+  const handleBookAppointment = (doctor) => {
+    console.log('Booking appointment with doctor:', doctor);
+    if (onBookAppointment) {
+      onBookAppointment(doctor);
+      onClose();
+    } else {
+      console.error('onBookAppointment function not provided');
     }
   };
 
@@ -145,21 +173,40 @@ const DoctorReferral = ({ onClose }) => {
                 {localDoctors.map((doctor, index) => (
                   <div key={index} className="doctor-card">
                     <div className="doctor-avatar">
-                      <div className="avatar-placeholder">👨‍⚕️</div>
+                      <div className="avatar-placeholder">Dr.</div>
                     </div>
                     <div className="doctor-info">
                       <h5>{doctor.name}</h5>
                       <p className="specialty">{doctor.specialty}</p>
                       <div className="doctor-details">
-                        <span className="experience">📅 {doctor.experience}</span>
-                        <span className="distance">📍 {doctor.distance}</span>
-                        <span className="rating">⭐ {doctor.rating}</span>
+                        <span className="experience">Experience: {doctor.experience}</span>
+                        <span className="distance">Distance: {doctor.distance}</span>
+                        <span className="rating">Rating: {doctor.rating}/5</span>
+                        <span className="consultation-fee">Fee: {doctor.consultationFee}</span>
                       </div>
                       <div className="availability">{doctor.availability}</div>
+                      {doctor.telehealth && (
+                        <div className="telehealth-badge">Telehealth Available</div>
+                      )}
                     </div>
-                    <button className="contact-doctor-btn">
-                      Contact
-                    </button>
+                    <div className="doctor-actions">
+                      <button
+                        type="button"
+                        className="book-appointment-btn"
+                        onClick={() => {
+                          console.log('Book appointment button clicked for:', doctor.name);
+                          handleBookAppointment(doctor);
+                        }}
+                      >
+                        Book Appointment
+                      </button>
+                      <button
+                        className="contact-doctor-btn"
+                        onClick={() => window.open(`tel:${doctor.contact.phone}`)}
+                      >
+                        Call Doctor
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

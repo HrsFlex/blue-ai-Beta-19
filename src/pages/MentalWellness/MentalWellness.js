@@ -5,6 +5,7 @@ import Navbar from '../../components/Navbar/Navbar';
 import VideoRecommendation from '../../components/VideoRecommendation/VideoRecommendation';
 import MoodTracker from '../../components/MoodTracker/MoodTracker';
 import DoctorReferral from '../../components/DoctorReferral/DoctorReferral';
+import WalkingRecommendation from '../../components/WalkingRecommendation/WalkingRecommendation';
 import Meditation from '../../components/Meditation/Meditation';
 
 const MentalWellness = () => {
@@ -27,6 +28,10 @@ const MentalWellness = () => {
   const [recommendedActivities, setRecommendedActivities] = useState([]);
   const [videoAttempts, setVideoAttempts] = useState(0);
   const [previousVideos, setPreviousVideos] = useState([]);
+  const [showWalkingRecommendation, setShowWalkingRecommendation] = useState(false);
+  const [walkingCompleted, setWalkingCompleted] = useState(false);
+  const [bookedAppointments, setBookedAppointments] = useState([]);
+  const [appointmentNotifications, setAppointmentNotifications] = useState([]);
   const messagesEndRef = useRef(null);
 
   // Enhanced AI service with multiple fallback strategies
@@ -88,12 +93,49 @@ const MentalWellness = () => {
     // Initialize conversation with a greeting
     const initialMessage = {
       id: Date.now(),
-      text: "Hi! I'm your mental wellness companion. How are you feeling today? 🌟",
+      text: "Hi! I'm your mental wellness companion. How are you feeling today?",
       sender: 'bot',
       timestamp: new Date()
     };
     setMessages([initialMessage]);
   }, []);
+
+  useEffect(() => {
+    // Load existing appointments from localStorage
+    const existingAppointments = JSON.parse(localStorage.getItem('bookedAppointments') || '[]');
+    setBookedAppointments(existingAppointments);
+
+    // Check for upcoming appointments and add notifications
+    const checkAppointments = () => {
+      const now = new Date();
+      existingAppointments.forEach(appointment => {
+        const appointmentTime = new Date(appointment.bookingTime);
+        const timeDiff = appointmentTime - now;
+
+        // Add notification if appointment is within 1 hour
+        if (timeDiff > 0 && timeDiff <= 60 * 60 * 1000) {
+          const notificationId = `notification-${appointment.id}`;
+          if (!appointmentNotifications.includes(notificationId)) {
+            const notificationMessage = {
+              id: Date.now(),
+              text: `Reminder: Your appointment with ${appointment.doctor.name} is coming up soon. Appointment ID: ${appointment.appointmentId}`,
+              sender: 'system',
+              timestamp: new Date(),
+              isAppointmentReminder: true
+            };
+            setMessages(prev => [...prev, notificationMessage]);
+            setAppointmentNotifications(prev => [...prev, notificationId]);
+          }
+        }
+      });
+    };
+
+    // Check appointments every 5 minutes
+    const interval = setInterval(checkAppointments, 5 * 60 * 1000);
+    checkAppointments(); // Check immediately on load
+
+    return () => clearInterval(interval);
+  }, [appointmentNotifications]);
 
   const analyzeSentiment = async (text) => {
     // Try Gemini AI first if available
@@ -935,15 +977,20 @@ const MentalWellness = () => {
 
   const handleFinalMoodCheck = (feeling) => {
     if (feeling === 'bad') {
-      // Enhanced response for continued negative feelings
-      setConversationPhase('needs-support'); // More appropriate phase than 'greeting'
+      // Show walking recommendation popup instead of text
+      setConversationPhase('needs-support');
       const message = {
         id: Date.now(),
-        text: "Thank you for being honest about how you're feeling. It's completely okay that the activity didn't fully help - mental wellness is a journey, not a quick fix. \n\n🚶‍♀️ **I strongly recommend taking a 15-minute walk right now** - Physical activity is one of the most effective ways to improve mood naturally. The combination of movement, fresh air, and change of scenery can make a real difference.\n\nOther immediate options:\n🎵 Put on your favorite uplifting music\n📞 Call or text a friend or family member\n🍵 Make yourself a warm cup of tea\n📖 Read something inspiring or comforting\n\nWould you like to try another activity with me, or would you prefer to take that walk first? I'm here to support you however you need. 💙",
+        text: "Thank you for being honest about how you're feeling. It's completely okay that the activity didn't fully help - mental wellness is a journey, not a quick fix.",
         sender: 'bot',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, message]);
+
+      // Show walking recommendation popup
+      setTimeout(() => {
+        setShowWalkingRecommendation(true);
+      }, 1000);
     } else {
       // Reset video attempts when mood improves
       setVideoAttempts(0);
@@ -958,6 +1005,85 @@ const MentalWellness = () => {
       setMessages(prev => [...prev, message]);
       setConversationPhase('complete');
     }
+  };
+
+  // Handle walking recommendation acceptance
+  const handleAcceptWalk = () => {
+    setWalkingCompleted(true);
+    setCompletedActivities(prev => ({ ...prev, walking: true }));
+
+    const walkMessage = {
+      id: Date.now(),
+      text: "Excellent choice! Taking a walk is a wonderful step towards feeling better.\n\nI'll check in with you after your walk to see how you're feeling. Take your time, enjoy the fresh air, and be gentle with yourself. You're doing great!\n\nRemember: Even 15 minutes of gentle movement can make a significant difference in your mood and mental clarity.",
+      sender: 'bot',
+      timestamp: new Date(),
+      showMoodReview: true // Show mood review after walk
+    };
+    setMessages(prev => [...prev, walkMessage]);
+  };
+
+  // Handle walking recommendation decline
+  const handleDeclineWalk = () => {
+    // Show doctor referral if user declines walk
+    const declineMessage = {
+      id: Date.now(),
+      text: "That's completely okay - walking isn't for everyone, and that's perfectly fine.\n\nSince you're still feeling down, I'd like to suggest connecting with professional mental health support. Sometimes talking to someone who specializes in mental wellness can provide the tools and strategies that really work for you.\n\nLet me show you some available resources and professionals who can help.",
+      sender: 'bot',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, declineMessage]);
+
+    setTimeout(() => {
+      setShowDoctorModal(true);
+    }, 2000);
+  };
+
+  // Handle mood check after walking - if still bad, show doctor referral
+  const handlePostWalkMoodCheck = (feeling) => {
+    if (feeling === 'bad' && walkingCompleted) {
+      const message = {
+        id: Date.now(),
+        text: "Thank you for taking the walk and being honest about how you're feeling.\n\nEven with physical activity, sometimes we need additional support, and that's completely okay. Talking to a mental health professional can provide you with personalized strategies and support that can really make a difference.\n\nLet me show you some excellent mental health resources and professionals who can help you on your wellness journey.",
+        sender: 'bot',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, message]);
+
+      setTimeout(() => {
+        setShowDoctorModal(true);
+      }, 2000);
+    } else {
+      // Use the regular mood check handler
+      handleFinalMoodCheck(feeling);
+    }
+  };
+
+  // Handle appointment booking
+  const handleBookAppointment = (doctor) => {
+    console.log('handleBookAppointment called with doctor:', doctor);
+    const appointment = {
+      id: Date.now(),
+      doctor: doctor,
+      bookingTime: new Date(),
+      status: 'confirmed',
+      appointmentId: `APT-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
+    };
+
+    console.log('Creating appointment:', appointment);
+    setBookedAppointments(prev => [...prev, appointment]);
+
+    const confirmationMessage = {
+      id: Date.now(),
+      text: `Appointment Confirmed\n\nYour appointment has been successfully booked:\n\nProfessional: ${doctor.name}\nSpecialty: ${doctor.specialty}\nContact: ${doctor.contact.phone}\nAppointment ID: ${appointment.appointmentId}\n\nYou will receive a reminder before your appointment. This is an important step toward getting the support you need.`,
+      sender: 'bot',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, confirmationMessage]);
+
+    // Store appointment in localStorage for persistence
+    const existingAppointments = JSON.parse(localStorage.getItem('bookedAppointments') || '[]');
+    localStorage.setItem('bookedAppointments', JSON.stringify([...existingAppointments, appointment]));
+    console.log('Appointment booked and saved');
   };
 
   return (
@@ -1024,15 +1150,24 @@ const MentalWellness = () => {
         />
       )}
 
-      {showDoctorReferral && (
-        <DoctorReferral
-          onClose={() => setShowDoctorReferral(false)}
+      {showWalkingRecommendation && (
+        <WalkingRecommendation
+          onClose={() => setShowWalkingRecommendation(false)}
+          onAccept={handleAcceptWalk}
+          onDecline={handleDeclineWalk}
         />
       )}
 
-      {(conversationPhase === 'post-video' || conversationPhase === 'post-meditation') && !showVideos && !showMeditation && !showDoctorReferral && (
+      {showDoctorReferral && (
+        <DoctorReferral
+          onClose={() => setShowDoctorReferral(false)}
+          onBookAppointment={handleBookAppointment}
+        />
+      )}
+
+      {(conversationPhase === 'post-video' || conversationPhase === 'post-meditation' || (conversationPhase === 'needs-support' && walkingCompleted)) && !showVideos && !showMeditation && !showDoctorReferral && !showWalkingRecommendation && (
         <MoodTracker
-          onMoodSelect={handleFinalMoodCheck}
+          onMoodSelect={walkingCompleted ? handlePostWalkMoodCheck : handleFinalMoodCheck}
           mandatory={messages.some(msg => msg.showMoodReview)}
         />
       )}
