@@ -304,7 +304,7 @@ function Avatar({
           ),
         ];
 
-        filename = host + filename;
+        filename = `http://localhost:5000/${filename}`;
         console.log(filename);
         setClips(newClips);
         setAudioSource(filename);
@@ -529,6 +529,7 @@ const ChatBot = () => {
   //   console.log(recorderControls?.recordingBlob);
   // }, [recorderControls.recordingBlob]);
   const [isRecording, setIsRecording] = useState(false);
+  const [isWebcamReady, setIsWebcamReady] = useState(false);
   const imgRef = useRef();
   const start = async () => {
     try {
@@ -651,11 +652,50 @@ const ChatBot = () => {
   };
 
   const capture = React.useCallback(async () => {
-    const imageSrc = imgRef.current.getScreenshot();
-    const blob = await fetch(imageSrc).then((res) => res.blob());
-    let file = new File([blob], "photo", { type: "image/jpeg" });
-    console.log("Screenshot captured:", file);
-  }, [imgRef]);
+    try {
+      if (!imgRef.current) {
+        console.error("Webcam ref is not available");
+        return;
+      }
+
+      if (!isWebcamReady) {
+        console.error("Webcam is not ready yet");
+        return;
+      }
+
+      const imageSrc = imgRef.current.getScreenshot();
+      if (!imageSrc) {
+        console.error("Failed to capture screenshot - empty image source");
+        return;
+      }
+
+      // Validate that the image source is not empty
+      if (imageSrc === "data:,") {
+        console.error("Screenshot captured is empty - webcam may not be ready");
+        return;
+      }
+
+      const blob = await fetch(imageSrc).then((res) => res.blob());
+      if (blob.size === 0) {
+        console.error("Screenshot blob is empty");
+        return;
+      }
+
+      let file = new File([blob], "photo.jpg", { type: "image/jpeg" });
+      console.log("Screenshot captured successfully:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        lastModified: file.lastModified
+      });
+
+      // Optionally, you can do something with the file here
+      // For example: upload it, store it, or process it
+
+    } catch (error) {
+      console.error("Error capturing screenshot:", error);
+    }
+  }, [imgRef, isWebcamReady]);
 
   return (
     <div className="w-full flex">
@@ -862,11 +902,19 @@ const ChatBot = () => {
                 <Webcam
                   ref={imgRef}
                   audio={false}
-                  height={0}
+                  height={videoConstraints.height}
                   screenshotFormat="image/jpeg"
-                  width={0}
+                  width={videoConstraints.width}
                   videoConstraints={videoConstraints}
                   style={{ display: 'none' }}
+                  onUserMedia={() => {
+                    console.log("Webcam access granted and ready");
+                    setIsWebcamReady(true);
+                  }}
+                  onUserMediaError={(error) => {
+                    console.error("Webcam access error:", error);
+                    setIsWebcamReady(false);
+                  }}
                 />
                 <button
                   className="bg-red-200 hover:bg-red-300 disabled:bg-gray-300 p-2 rounded text-lg w-[100px] transition-colors"

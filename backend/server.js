@@ -1466,10 +1466,30 @@ app.post('/get-balance', (req, res) => {
   }
 });
 
-// Avatar speech endpoint
-app.post('/talk', (req, res) => {
+// Initialize a standalone ElevenLabs service for the /talk endpoint
+let talkElevenLabsService = null;
+
+async function initializeTalkService() {
   try {
-    const { text } = req.body;
+    const talkConfig = {
+      ELEVENLABS_API_KEY: process.env.ELEVENLABS_API_KEY,
+      CORS_ORIGINS: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002']
+    };
+    talkElevenLabsService = new ElevenLabsService(talkConfig);
+    await talkElevenLabsService.initialize();
+    console.log('✅ Talk endpoint ElevenLabs service initialized');
+  } catch (error) {
+    console.warn('⚠️ Talk endpoint ElevenLabs service failed to initialize:', error.message);
+  }
+}
+
+// Initialize the talk service when server starts
+initializeTalkService();
+
+// Avatar speech endpoint
+app.post('/talk', async (req, res) => {
+  try {
+    const { text, language = 'en' } = req.body;
 
     if (!text) {
       return res.status(400).json({
@@ -1478,8 +1498,44 @@ app.post('/talk', (req, res) => {
       });
     }
 
-    // Generate mock blend data for avatar facial animations
-    const generateMockBlendData = () => {
+    let audioResult = null;
+    let filename = null;
+
+    // Try to use ElevenLabs service if available
+    if (talkElevenLabsService && talkElevenLabsService.initialized) {
+      try {
+        console.log(`🎤 Generating speech for: "${text.substring(0, 50)}..."`);
+        audioResult = await talkElevenLabsService.synthesizeSpeech(text, { language });
+        filename = audioResult.filename;
+        console.log(`✅ Speech generated: ${filename}`);
+      } catch (speechError) {
+        console.warn('⚠️ ElevenLabs speech generation failed:', speechError.message);
+        // Fall back to mock mode
+      }
+    } else {
+      console.log('⚠️ ElevenLabs service not initialized, using mock mode');
+    }
+
+    // If no audio was generated, create a mock audio file
+    if (!filename) {
+      // Generate a simple silent MP3 file (this is a placeholder)
+      // In a real implementation, you would want to create an actual silent audio file
+      filename = `mock_audio_${Date.now()}.mp3`;
+      const mockAudioPath = path.join(__dirname, 'public', 'audio', filename);
+
+      // Ensure audio directory exists
+      const audioDir = path.join(__dirname, 'public', 'audio');
+      if (!fs.existsSync(audioDir)) {
+        fs.mkdirSync(audioDir, { recursive: true });
+      }
+
+      // Create a mock empty file (in reality, you'd generate a proper silent MP3)
+      fs.writeFileSync(mockAudioPath, Buffer.from(''));
+      console.log(`📝 Created mock audio file: ${filename}`);
+    }
+
+    // Generate blend data for avatar facial animations
+    const generateBlendData = () => {
       const blendShapes = [];
       const numFrames = Math.floor(text.length * 2); // Rough estimate of frames needed
 
@@ -1510,14 +1566,16 @@ app.post('/talk', (req, res) => {
       return blendShapes;
     };
 
-    const blendData = generateMockBlendData();
-    const filename = `audio_${Date.now()}.mp3`;
+    const blendData = generateBlendData();
 
     res.json({
       success: true,
       blendData,
       filename,
-      message: "Speech animation data generated successfully"
+      audioUrl: audioResult?.audioUrl || `/audio/${filename}`,
+      message: "Speech animation data generated successfully",
+      usedRealAudio: !!audioResult,
+      duration: audioResult?.duration || 0
     });
   } catch (error) {
     console.error('Avatar speech error:', error);

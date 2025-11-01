@@ -12,7 +12,7 @@ class SakhiAI {
 
     // RAG Engine Configuration - Always enabled now
     this.ragEnabled = true;
-    this.ragBaseUrl = 'http://localhost:5000';
+    this.ragBaseUrl = ''; // Use relative URL since we have proxy configuration
     this.ragApiKey = ''; // No API key required for local development
 
     // Initialize local data storage

@@ -23,7 +23,7 @@ import WellnessRecommendations from "./pages/WellnessRecommendations/WellnessRec
 console.log('🤖 Connecting to RAG Backend Engine...');
 
 // Test connection to RAG backend
-fetch('http://localhost:5000/api/rag/health')
+fetch('/api/rag/health')
   .then(response => response.json())
   .then(data => {
     console.log('✅ RAG Backend connected:', data.overall);

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sakhi AI - Mental Health Companion</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .chat-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .emotion-indicator {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+        .typing-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #666;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-heart text-3xl"></i>
+                    <div>
+                        <h1 class="text-2xl font-bold">Sakhi AI</h1>
+                        <p class="text-sm opacity-90">Your Mental Health Companion</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="healthStatus" class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-green-400 rounded-full"></div>
+                        <span class="text-sm">Connected</span>
+                    </div>
+                    <button id="settingsBtn" class="p-2 rounded-full hover:bg-white hover:bg-opacity-20 transition">
+                        <i class="fas fa-cog text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Panel - Chat -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <!-- Chat Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-robot text-purple-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-semibold">Chat with Sakhi</h2>
+                                <div class="flex items-center space-x-2">
+                                    <div id="ragStatus" class="flex items-center space-x-1">
+                                        <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span class="text-xs text-gray-600">RAG Active</span>
+                                    </div>
+                                    <span id="emotionStatus" class="text-xs text-gray-600 emotion-indicator">
+                                        😊 Caring
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="clearChatBtn" class="text-gray-500 hover:text-gray-700 transition">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+
+                    <!-- Chat Messages -->
+                    <div id="chatMessages" class="chat-container bg-gray-50 rounded-lg p-4 mb-4 space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <i class="fas fa-robot text-purple-600 text-sm"></i>
+                            </div>
+                            <div class="bg-white rounded-lg p-3 max-w-md shadow-sm">
+                                <p class="text-gray-800">Hello! I'm Sakhi, your mental health companion. I'm here to listen, support you, and provide guidance. How are you feeling today?</p>
+                                <div class="text-xs text-gray-500 mt-2">
+                                    <span class="bg-green-100 text-green-700 px-2 py-1 rounded">Ready to help</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Input -->
+                    <div class="flex space-x-2">
+                        <div class="flex-1 relative">
+                            <input
+                                type="text"
+                                id="messageInput"
+                                placeholder="Type your message here..."
+                                class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            >
+                            <button id="voiceInputBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-purple-600 transition">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
+                        <button id="sendBtn" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition flex items-center space-x-2">
+                            <span>Send</span>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+
+                    <!-- Voice Controls -->
+                    <div id="voiceControls" class="mt-4 hidden">
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                                <span class="text-sm text-red-700">Recording...</span>
+                            </div>
+                            <button id="stopRecordingBtn" class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition">
+                                Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Tools & Resources -->
+            <div class="space-y-6">
+                <!-- Document Upload -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
+                        <i class="fas fa-file-medical text-blue-600"></i>
+                        <span>Medical Documents</span>
+                    </h3>
+
+                    <div class="space-y-4">
+                        <div id="uploadArea" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-purple-500 transition cursor-pointer">
+                            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                            <p class="text-gray-600">Drop PDF files here or click to browse</p>
+                            <p class="text-xs text-gray-500 mt-1">Maximum file size: 16MB</p>
+                            <input type="file" id="fileInput" accept=".pdf" class="hidden" multiple>
+                        </div>
+
+                        <div id="documentList" class="space-y-2">
+                            <!-- Documents will be listed here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mental Health Assessment -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
+                        <i class="fas fa-clipboard-check text-green-600"></i>
+                        <span>Assessment</span>
+                    </h3>
+
+                    <p class="text-gray-600 text-sm mb-4">Take a quick mental health screening to get personalized recommendations.</p>
+
+                    <button id="assessmentBtn" class="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition">
+                        Start Assessment
+                    </button>
+                </div>
+
+                <!-- Resources -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center space-x-2">
+                        <i class="fas fa-life-ring text-purple-600"></i>
+                        <span>Resources</span>
+                    </h3>
+
+                    <div class="space-y-3">
+                        <a href="#" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <h4 class="font-medium text-sm">Crisis Helpline</h4>
+                            <p class="text-xs text-gray-600">988 - 24/7 Support</p>
+                        </a>
+                        <a href="#" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <h4 class="font-medium text-sm">Breathing Exercises</h4>
+                            <p class="text-xs text-gray-600">Quick relaxation techniques</p>
+                        </a>
+                        <a href="#" class="block p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <h4 class="font-medium text-sm">Find a Therapist</h4>
+                            <p class="text-xs text-gray-600">Professional help directory</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Assessment Modal -->
+    <div id="assessmentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-xl font-semibold">Mental Health Assessment</h3>
+                        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+
+                    <div id="assessmentContent">
+                        <!-- Assessment questions will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio element for text-to-speech -->
+    <audio id="audioPlayer" class="hidden"></audio>
+
+    <script>
+        // Application State
+        let sessionId = null;
+        let isRecording = false;
+        let mediaRecorder = null;
+        let audioChunks = [];
+
+        // DOM Elements
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const clearChatBtn = document.getElementById('clearChatBtn');
+        const voiceInputBtn = document.getElementById('voiceInputBtn');
+        const voiceControls = document.getElementById('voiceControls');
+        const stopRecordingBtn = document.getElementById('stopRecordingBtn');
+        const fileInput = document.getElementById('fileInput');
+        const uploadArea = document.getElementById('uploadArea');
+        const documentList = document.getElementById('documentList');
+        const assessmentBtn = document.getElementById('assessmentBtn');
+        const assessmentModal = document.getElementById('assessmentModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const assessmentContent = document.getElementById('assessmentContent');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const healthStatus = document.getElementById('healthStatus');
+        const ragStatus = document.getElementById('ragStatus');
+        const emotionStatus = document.getElementById('emotionStatus');
+
+        // Initialize Application
+        async function initApp() {
+            try {
+                // Generate session ID
+                sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+                // Check system health
+                await checkHealth();
+
+                // Setup event listeners
+                setupEventListeners();
+
+                console.log('Sakhi AI initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                showError('Failed to initialize application. Please refresh the page.');
+            }
+        }
+
+        // Check System Health
+        async function checkHealth() {
+            try {
+                const response = await fetch('/api/v1/health');
+                const health = await response.json();
+
+                if (health.status === 'healthy') {
+                    updateHealthStatus(true, 'All systems operational');
+                } else {
+                    updateHealthStatus(false, 'Some services unavailable');
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+                updateHealthStatus(false, 'Connection issues');
+            }
+        }
+
+        // Update Health Status
+        function updateHealthStatus(isHealthy, message) {
+            const statusDiv = healthStatus.querySelector('div');
+            const statusText = healthStatus.querySelector('span');
+
+            if (isHealthy) {
+                statusDiv.className = 'w-3 h-3 bg-green-400 rounded-full';
+                statusText.textContent = 'Connected';
+            } else {
+                statusDiv.className = 'w-3 h-3 bg-red-400 rounded-full';
+                statusText.textContent = message;
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            // Send message
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Clear chat
+            clearChatBtn.addEventListener('click', clearChat);
+
+            // Voice recording
+            voiceInputBtn.addEventListener('click', startRecording);
+            stopRecordingBtn.addEventListener('click', stopRecording);
+
+            // File upload
+            uploadArea.addEventListener('click', () => fileInput.click());
+            uploadArea.addEventListener('dragover', handleDragOver);
+            uploadArea.addEventListener('drop', handleFileDrop);
+            fileInput.addEventListener('change', handleFileSelect);
+
+            // Assessment
+            assessmentBtn.addEventListener('click', openAssessmentModal);
+            closeModalBtn.addEventListener('click', closeAssessmentModal);
+            assessmentModal.addEventListener('click', (e) => {
+                if (e.target === assessmentModal) {
+                    closeAssessmentModal();
+                }
+            });
+        }
+
+        // Send Message
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Add user message to chat
+            addMessage('user', message);
+            messageInput.value = '';
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                const response = await fetch('/api/v1/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                const data = await response.json();
+
+                // Remove typing indicator
+                hideTypingIndicator();
+
+                if (data.success) {
+                    // Add AI response to chat
+                    addMessage('assistant', data.response, {
+                        ragEnabled: data.rag_enabled,
+                        sources: data.sources,
+                        emotion: data.emotion
+                    });
+
+                    // Update emotion status
+                    if (data.emotion) {
+                        updateEmotionStatus(data.emotion.emotion);
+                    }
+
+                    // Play text-to-speech if available
+                    if (data.response) {
+                        await playAudioResponse(data.response);
+                    }
+                } else {
+                    addMessage('assistant', 'I apologize, but I\'m having trouble responding right now. Please try again.', {
+                        error: true
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                hideTypingIndicator();
+                addMessage('assistant', 'Connection issue. Please check your internet connection and try again.', {
+                    error: true
+                });
+            }
+        }
+
+        // Add Message to Chat
+        function addMessage(role, content, metadata = {}) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-3';
+
+            if (role === 'user') {
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-blue-600 text-sm"></i>
+                    </div>
+                    <div class="bg-blue-500 text-white rounded-lg p-3 max-w-md shadow-sm">
+                        <p>${escapeHtml(content)}</p>
+                    </div>
+                `;
+            } else {
+                const sourcesHtml = metadata.sources && metadata.sources.length > 0 ?
+                    metadata.sources.map(source =>
+                        `<div class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded mt-2">
+                            📄 ${source.title}
+                        </div>`
+                    ).join('') : '';
+
+                const emotionHtml = metadata.emotion ?
+                    `<div class="text-xs text-gray-500 mt-2">
+                        <span class="bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                            ${getEmotionIcon(metadata.emotion.emotion)} ${metadata.emotion.emotion}
+                        </span>
+                    </div>` : '';
+
+                messageDiv.innerHTML = `
+                    <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-robot text-purple-600 text-sm"></i>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 max-w-md shadow-sm border ${metadata.error ? 'border-red-200' : 'border-gray-200'}">
+                        <p class="text-gray-800">${escapeHtml(content)}</p>
+                        ${sourcesHtml}
+                        ${emotionHtml}
+                        <div class="flex items-center space-x-2 mt-2">
+                            ${metadata.ragEnabled ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">📚 Context Enhanced</span>' : ''}
+                            ${metadata.error ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded">⚠️ Error</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Show/Hide Typing Indicator
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'flex items-start space-x-3';
+            typingDiv.id = 'typingIndicator';
+            typingDiv.innerHTML = `
+                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-robot text-purple-600 text-sm"></i>
+                </div>
+                <div class="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            `;
+            chatMessages.appendChild(typingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // Voice Recording
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    await processVoiceRecording(audioBlob);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+
+                voiceInputBtn.classList.add('hidden');
+                voiceControls.classList.remove('hidden');
+            } catch (error) {
+                console.error('Failed to start recording:', error);
+                showError('Microphone access denied. Please allow microphone access to use voice input.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+
+                voiceInputBtn.classList.remove('hidden');
+                voiceControls.classList.add('hidden');
+
+                // Stop all tracks
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        async function processVoiceRecording(audioBlob) {
+            // This would normally send the audio to a speech-to-text service
+            // For now, we'll show a placeholder message
+            showTypingIndicator();
+
+            setTimeout(() => {
+                hideTypingIndicator();
+                addMessage('assistant', 'I received your voice message. Voice processing is coming soon!', {
+                    info: true
+                });
+            }, 2000);
+        }
+
+        // File Upload
+        function handleDragOver(e) {
+            e.preventDefault();
+            uploadArea.classList.add('border-purple-500', 'bg-purple-50');
+        }
+
+        function handleFileDrop(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('border-purple-500', 'bg-purple-50');
+
+            const files = Array.from(e.dataTransfer.files);
+            processFiles(files);
+        }
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files);
+            processFiles(files);
+        }
+
+        async function processFiles(files) {
+            for (const file of files) {
+                if (file.type === 'application/pdf') {
+                    await uploadDocument(file);
+                } else {
+                    showError(`Unsupported file type: ${file.name}. Please upload PDF files only.`);
+                }
+            }
+        }
+
+        async function uploadDocument(file) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('session_id', sessionId);
+
+            // Show upload progress
+            showDocumentUploadProgress(file.name);
+
+            try {
+                const response = await fetch('/api/v1/documents/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    addDocumentToList(result);
+                    showSuccess(`Document "${file.name}" uploaded successfully!`);
+
+                    // Add system message
+                    addMessage('assistant', `Great! I've processed your document "${file.name}". I can now use this information to provide more personalized responses to your health questions.`, {
+                        system: true
+                    });
+                } else {
+                    showError(`Failed to upload ${file.name}: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Document upload failed:', error);
+                showError(`Failed to upload ${file.name}. Please try again.`);
+            }
+        }
+
+        function showDocumentUploadProgress(filename) {
+            const progressDiv = document.createElement('div');
+            progressDiv.className = 'flex items-center space-x-2 p-2 bg-yellow-50 rounded';
+            progressDiv.id = 'uploadProgress';
+            progressDiv.innerHTML = `
+                <div class="animate-spin w-4 h-4 border-2 border-yellow-600 border-t-transparent rounded-full"></div>
+                <span class="text-sm text-yellow-700">Uploading ${filename}...</span>
+            `;
+            documentList.appendChild(progressDiv);
+        }
+
+        function addDocumentToList(result) {
+            // Remove progress indicator
+            const progressDiv = document.getElementById('uploadProgress');
+            if (progressDiv) {
+                progressDiv.remove();
+            }
+
+            const docDiv = document.createElement('div');
+            docDiv.className = 'flex items-center justify-between p-2 bg-gray-50 rounded';
+            docDiv.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-file-pdf text-red-500"></i>
+                    <div>
+                        <p class="text-sm font-medium">${result.filename}</p>
+                        <p class="text-xs text-gray-500">${result.pages} pages</p>
+                    </div>
+                </div>
+                <span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Uploaded</span>
+            `;
+            documentList.appendChild(docDiv);
+        }
+
+        // Assessment Modal
+        function openAssessmentModal() {
+            assessmentModal.classList.remove('hidden');
+            loadAssessmentQuestions();
+        }
+
+        function closeAssessmentModal() {
+            assessmentModal.classList.add('hidden');
+        }
+
+        async function loadAssessmentQuestions() {
+            try {
+                // This would normally load assessment questions from the API
+                // For now, we'll show a simple assessment
+                assessmentContent.innerHTML = `
+                    <div class="space-y-6">
+                        <div>
+                            <h4 class="font-medium mb-2">Over the past 2 weeks, how often have you been bothered by little interest or pleasure in doing things?</h4>
+                            <div class="space-y-2">
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q1" value="0" class="text-purple-600">
+                                    <span>Not at all</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q1" value="1" class="text-purple-600">
+                                    <span>Several days</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q1" value="2" class="text-purple-600">
+                                    <span>More than half the days</span>
+                                </label>
+                                <label class="flex items-center space-x-2">
+                                    <input type="radio" name="q1" value="3" class="text-purple-600">
+                                    <span>Nearly every day</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button id="submitAssessmentBtn" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition">
+                            Submit Assessment
+                        </button>
+                    </div>
+                `;
+
+                document.getElementById('submitAssessmentBtn').addEventListener('click', submitAssessment);
+            } catch (error) {
+                console.error('Failed to load assessment questions:', error);
+                assessmentContent.innerHTML = '<p class="text-red-600">Failed to load assessment questions. Please try again.</p>';
+            }
+        }
+
+        async function submitAssessment() {
+            try {
+                // Collect responses
+                const responses = [
+                    {
+                        question_id: 'phq9_1',
+                        value: parseInt(document.querySelector('input[name="q1"]:checked')?.value || 0)
+                    }
+                ];
+
+                const response = await fetch('/api/v1/assessment/mental-health', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        responses: responses,
+                        session_id: sessionId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAssessmentResults(result.assessment);
+                } else {
+                    showError('Failed to submit assessment. Please try again.');
+                }
+            } catch (error) {
+                console.error('Assessment submission failed:', error);
+                showError('Failed to submit assessment. Please try again.');
+            }
+        }
+
+        function showAssessmentResults(assessment) {
+            assessmentContent.innerHTML = `
+                <div class="text-center space-y-4">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                        <i class="fas fa-check text-green-600 text-2xl"></i>
+                    </div>
+                    <h4 class="text-lg font-semibold">Assessment Complete</h4>
+                    <div class="bg-gray-50 rounded-lg p-4 text-left">
+                        <p class="font-medium">Overall Score: ${assessment.overall_score}/100</p>
+                        <p class="text-sm text-gray-600">Category: ${assessment.overall_category.replace('_', ' ')}</p>
+                    </div>
+                    <div class="text-left">
+                        <h5 class="font-medium mb-2">Recommendations:</h5>
+                        <ul class="text-sm space-y-1">
+                            ${assessment.recommendations.map(rec => `<li>• ${rec}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <button onclick="closeAssessmentModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                        Close
+                    </button>
+                </div>
+            `;
+        }
+
+        // Audio Playback
+        async function playAudioResponse(text) {
+            try {
+                const response = await fetch('/api/v1/voice/synthesize', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        emotion: 'caring'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    audioPlayer.src = result.audio_url;
+                    audioPlayer.play();
+                }
+            } catch (error) {
+                console.error('Failed to play audio:', error);
+            }
+        }
+
+        // Clear Chat
+        function clearChat() {
+            if (confirm('Are you sure you want to clear the chat history?')) {
+                chatMessages.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-robot text-purple-600 text-sm"></i>
+                        </div>
+                        <div class="bg-white rounded-lg p-3 max-w-md shadow-sm">
+                            <p class="text-gray-800">Chat cleared. How can I help you today?</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Update Emotion Status
+        function updateEmotionStatus(emotion) {
+            emotionStatus.innerHTML = `${getEmotionIcon(emotion)} ${emotion}`;
+        }
+
+        // Utility Functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function getEmotionIcon(emotion) {
+            const icons = {
+                'happy': '😊',
+                'sad': '😢',
+                'angry': '😠',
+                'anxious': '😰',
+                'caring': '🤗',
+                'neutral': '😐',
+                'hopeful': '🌟',
+                'confused': '😕'
+            };
+            return icons[emotion] || '😐';
+        }
+
+        function showError(message) {
+            // Simple error display - could be enhanced with toast notifications
+            console.error(message);
+            alert(message);
+        }
+
+        function showSuccess(message) {
+            // Simple success display - could be enhanced with toast notifications
+            console.log(message);
+        }
+
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>

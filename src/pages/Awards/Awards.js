@@ -11,6 +11,9 @@ import {
 } from "../../components/Animations";
 import { useCoinAnimation, useSuccessAnimation, useReducedMotion } from "../../utils/animations/useAnimationHooks";
 
+// API base URL - using relative URL to work with proxy
+const API_BASE_URL = "";
+
 const initialRewards = [
   {
     id: 1,
@@ -101,7 +104,7 @@ const Awards = () => {
           localStorage.setItem("data", JSON.stringify({ email: defaultEmail, name: "Test User" }));
           console.log("Created default user data");
 
-          const res = await axios.post("http://localhost:5000/add-coins", {
+          const res = await axios.post(`${API_BASE_URL}/add-coins`, {
             email: defaultEmail,
             amount: 100
           });
@@ -112,7 +115,7 @@ const Awards = () => {
           return;
         }
 
-        const res = await axios.post("http://localhost:5000/add-coins", {
+        const res = await axios.post(`${API_BASE_URL}/add-coins`, {
           email: email,
           amount: 100
         });
@@ -127,7 +130,7 @@ const Awards = () => {
         localStorage.setItem("data", JSON.stringify({ email: defaultEmail, name: "Test User" }));
         console.log("Created default user data");
 
-        const res = await axios.post("http://localhost:5000/add-coins", {
+        const res = await axios.post(`${API_BASE_URL}/add-coins`, {
           email: defaultEmail,
           amount: 100
         });
@@ -152,7 +155,7 @@ const Awards = () => {
           const email = user.email;
 
           // Fetch user rewards
-          const res = await axios.post("http://localhost:5000/rewards", {
+          const res = await axios.post(`${API_BASE_URL}/rewards`, {
             email: email,
           });
 
@@ -182,7 +185,7 @@ const Awards = () => {
 
       // Use the backend API to redeem reward
       const email = JSON.parse(localStorage.getItem("data")).email;
-      const res = await axios.post("http://localhost:5000/redeem-reward", {
+      const res = await axios.post(`${API_BASE_URL}/redeem-reward`, {
         email: email,
         rewardId: rewardId
       });
