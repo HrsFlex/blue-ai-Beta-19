@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Voice Assistant</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f5f7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        
+        .container {
+            background-color: #ffffff;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            width: 400px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #34495e;
+        }
+
+        #recognizedText {
+            font-size: 18px;
+            color: #2c3e50;
+            background-color: #ecf0f1;
+            padding: 10px;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+
+        /* Microphone Icon with Animation */
+        .microphone {
+            margin: 20px auto;
+            width: 100px; /* Increased size of the microphone */
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #3498db, #8e44ad, #f39c12, #e74c3c);
+            background-size: 300% 300%;
+            animation: gradientAnimation 3s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            cursor: pointer; /* Cursor to indicate clickable */
+        }
+
+        /* Microphone Icon */
+        .microphone svg {
+            width: 50px; /* Increased size of the icon */
+            height: 50px;
+            fill: white;
+        }
+
+        /* Gradient Animation */
+        @keyframes gradientAnimation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Pulse Animation for User Speaking */
+        .user-speaking {
+            animation: pulse 1s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Wave Animation for Bot Speaking */
+        .bot-speaking {
+            animation: wave 1.5s ease infinite;
+        }
+
+        @keyframes wave {
+            0% { transform: rotate(0deg); }
+            50% { transform: rotate(10deg); }
+            100% { transform: rotate(0deg); }
+        }
+
+        /* Voice selection styling */
+        #voiceSelect {
+            margin-bottom: 20px;
+            padding: 10px;
+            width: 100%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Personal Voice Assistant</h1>
+        <!-- Voice Selection Dropdown -->
+        <select id="voiceSelect">
+            <option value="">Select a Voice</option>
+        </select>
+
+        <p id="recognizedText">Click the microphone to start speaking...</p>
+        <div class="microphone" id="microphone">
+            <!-- Microphone SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 15c1.656 0 3-1.344 3-3v-6c0-1.656-1.344-3-3-3s-3 1.344-3 3v6c0 1.656 1.344 3 3 3zm7-3h-1c0 2.76-2.241 5-5 5s-5-2.24-5-5h-1c0 3.038 2.278 5.527 5 5.937v3.063h-3v2h8v-2h-3v-3.063c2.722-.41 5-2.899 5-5.937z"/></svg>
+        </div>
+        <audio id="audioPlayer" style="display: none;"></audio>
+    </div>
+    <script>
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const synth = window.speechSynthesis;
+        let recognition;
+        let isSpeechRecognitionSupported = false;
+
+        // Check if Speech Recognition is supported
+        if (SpeechRecognition) {
+            try {
+                recognition = new SpeechRecognition();
+                isSpeechRecognitionSupported = true;
+            } catch (error) {
+                console.error('Failed to initialize Speech Recognition:', error);
+                isSpeechRecognitionSupported = false;
+            }
+        } else {
+            console.error('Speech Recognition is not supported in this browser');
+            isSpeechRecognitionSupported = false;
+        }
+        let voices = [];
+        let selectedVoice = null;
+        let history = []; // To maintain the conversation history
+        let isRecognitionActive = false; // Track recognition state
+    
+        const mic = document.getElementById('microphone');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const audioPlayer = document.getElementById('audioPlayer');
+    
+        function populateVoiceList() {
+            voices = synth.getVoices();
+            voices.forEach((voice, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${voice.name} (${voice.lang})`;
+                voiceSelect.appendChild(option);
+            });
+        }
+    
+        speechSynthesis.onvoiceschanged = populateVoiceList;
+    
+        voiceSelect.addEventListener('change', () => {
+            const selectedIndex = voiceSelect.value;
+            selectedVoice = voices[selectedIndex];
+        });
+        function sanitizeText(text) {
+            // Remove Markdown formatting symbols like * _ # and any other unwanted characters
+            return text.replace(/[*_#`~>-]/g, '').trim();
+        }
+    
+        function speak(text) {
+            const sanitizedText = sanitizeText(text);
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            const utterance = new SpeechSynthesisUtterance(sanitizedText);
+            
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+    
+            synth.speak(utterance);
+            mic.classList.remove('user-speaking');
+            mic.classList.add('bot-speaking');
+            utterance.onend = () => {
+                mic.classList.remove('bot-speaking');
+            };
+        }
+    
+        async function getChatResponse(transcript) {
+            try {
+                // Send the user's input and history to the backend chat endpoint
+                const response = await fetch('http://127.0.0.1:8001/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: transcript,  // Send the recognized message
+                        history: history      // Send the conversation history
+                    })
+                });
+    
+                const data = await response.json();
+                history = data.history; // Update the conversation history
+                return data.message; // Return the chatbot's response
+            } catch (error) {
+                console.error("Error fetching chat response:", error);
+                return "I'm sorry, something went wrong.";
+            }
+        }
+    
+        // Configure speech recognition only if supported
+        if (isSpeechRecognitionSupported) {
+            recognition.lang = "en-US";
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            recognition.continuous = true;
+
+            recognition.onstart = () => {
+                isRecognitionActive = true;
+                mic.classList.add('user-speaking');
+                console.log('Speech recognition started');
+            };
+
+            recognition.onend = () => {
+                isRecognitionActive = false;
+                mic.classList.remove('user-speaking');
+                console.log('Speech recognition ended');
+            };
+
+            recognition.onresult = async (event) => {
+                const currentTranscript = event.results[event.resultIndex][0].transcript;
+                console.log("User said:", currentTranscript);
+                document.getElementById('recognizedText').textContent = currentTranscript;
+
+                // Get the bot's response from the server
+                const botReply = await getChatResponse(currentTranscript);
+
+                // Call speak function with the bot's reply
+                fetch('http://127.0.0.1:8001/process-text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: botReply })
+                })
+                .then(response => response.blob()) // Get the audio data as a Blob
+                .then(blob => {
+                    const audioUrl = URL.createObjectURL(blob);
+                    audioPlayer.src = audioUrl; // Set the Blob URL as the source for the audio element
+
+                    // Handle audio playback errors
+                    audioPlayer.onerror = (e) => {
+                        console.error('Audio playback error:', e);
+                        document.getElementById('recognizedText').textContent = 'Audio playback failed. Text response: ' + botReply;
+                    };
+
+                    // Attempt to play the audio
+                    audioPlayer.play().catch(error => {
+                        console.error('Failed to play audio:', error);
+                        // Fallback to text display if audio fails
+                        document.getElementById('recognizedText').textContent = botReply;
+                    });
+                })
+                .catch(error => {
+                    console.error("Error processing text:", error);
+                });
+                // speak(botReply);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Recognition error:', event.error);
+            };
+        }
+    
+        mic.addEventListener('click', () => {
+            if (isSpeechRecognitionSupported) {
+                if (isRecognitionActive) {
+                    // Stop recognition if it's already running
+                    recognition.stop();
+                    console.log('Stopping speech recognition');
+                } else {
+                    // Start recognition if it's not running
+                    recognition.start();
+                    console.log('Starting speech recognition');
+                }
+            } else {
+                // Fallback: Show alert or provide text input alternative
+                alert('Speech recognition is not supported in your browser. Please use a supported browser like Chrome, Firefox, or Edge.');
+                document.getElementById('recognizedText').textContent = 'Speech recognition not supported. Please try a different browser.';
+            }
+        });
+    </script>    
+</body>
+</html>
+
