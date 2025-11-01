@@ -5,6 +5,7 @@ const http = require('http');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 require('dotenv').config();
 
 const app = express();
@@ -13,10 +14,84 @@ const wss = new WebSocket.Server({ server });
 
 const PORT = process.env.PORT || 5000;
 
+// ML Service Configuration
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
+// Emotion tracking storage (in production, use a proper database)
+const emotionAnalytics = new Map(); // userId -> emotion data
+const emotionHistory = []; // Global emotion history
+
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// ML Service Helper Functions
+async function callMLService(endpoint, data) {
+  try {
+    const response = await axios.post(`${ML_SERVICE_URL}${endpoint}`, data, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 30000
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`ML Service Error (${endpoint}):`, error.message);
+    // Return fallback response
+    return {
+      emotion: 'uncertain',
+      confidence: 0.0,
+      response: getFallbackResponse(data.prompt || data.text || 'I understand you\'re reaching out. I\'m here to support you.'),
+      multimodal: false,
+      timestamp: new Date().toISOString()
+    };
+  }
+}
+
+function getFallbackResponse(input) {
+  const fallbackResponses = [
+    "I understand how you're feeling. It's brave of you to share this with me.",
+    "That sounds really challenging. Remember, you're stronger than you think.",
+    "Thank you for trusting me with your thoughts. How can I support you better?",
+    "I'm here for you. Let's work through this together step by step.",
+    "Your feelings are valid. It's okay to not be okay sometimes.",
+    "I'm here to listen. Please tell me more about what you're experiencing.",
+    "That takes courage to share. I appreciate you opening up to me."
+  ];
+  return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+}
+
+function trackEmotion(userId, emotionData) {
+  const timestamp = new Date().toISOString();
+  const analyticsEntry = {
+    userId,
+    emotion: emotionData.emotion,
+    confidence: emotionData.confidence,
+    timestamp,
+    multimodal: emotionData.multimodal || false
+  };
+
+  // Add to global history
+  emotionHistory.push(analyticsEntry);
+
+  // Update user-specific analytics
+  if (!emotionAnalytics.has(userId)) {
+    emotionAnalytics.set(userId, []);
+  }
+  emotionAnalytics.get(userId).push(analyticsEntry);
+
+  // Keep only last 100 entries per user to prevent memory issues
+  const userHistory = emotionAnalytics.get(userId);
+  if (userHistory.length > 100) {
+    emotionAnalytics.set(userId, userHistory.slice(-100));
+  }
+
+  // Keep only last 1000 global entries
+  if (emotionHistory.length > 1000) {
+    emotionHistory.splice(0, emotionHistory.length - 1000);
+  }
+}
 
 // Create audio directory if it doesn't exist
 const audioDir = path.join(__dirname, 'public', 'audio');
@@ -298,36 +373,328 @@ app.post('/auth/logout', (req, res) => {
   }
 });
 
-// Chatbot API
-app.post('/chatbot', (req, res) => {
+// Enhanced Chatbot API with Emotion Detection
+app.post('/chatbot', async (req, res) => {
   try {
-    const { message } = req.body;
+    const { message, userId } = req.body;
 
-    // Simulate AI companion response
-    const responses = [
-      "I understand how you're feeling. It's brave of you to share this with me.",
-      "That sounds really challenging. Remember, you're stronger than you think.",
-      "Thank you for trusting me with your thoughts. How can I support you better?",
-      "I'm here for you. Let's work through this together step by step.",
-      "Your feelings are valid. It's okay to not be okay sometimes."
-    ];
-
-    const aiResponse = responses[Math.floor(Math.random() * responses.length)];
-
-    // Simulate processing delay
-    setTimeout(() => {
-      res.json({
-        success: true,
-        answer: aiResponse,
-        timestamp: new Date().toISOString()
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Message is required'
       });
-    }, 1000);
+    }
+
+    // Call ML service for emotion analysis and response generation
+    const mlResponse = await callMLService('/api/v/chat', {
+      prompt: message,
+      user_id: userId || 'anonymous'
+    });
+
+    // Track emotion analytics
+    if (userId) {
+      trackEmotion(userId, mlResponse);
+    }
+
+    // Broadcast emotion update via WebSocket
+    if (userId && mlResponse.emotion && mlResponse.emotion !== 'uncertain') {
+      const emotionUpdate = {
+        type: 'emotion_update',
+        userId,
+        emotion: mlResponse.emotion,
+        confidence: mlResponse.confidence,
+        timestamp: new Date().toISOString()
+      };
+
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(emotionUpdate));
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      answer: mlResponse.response,
+      emotion: mlResponse.emotion,
+      confidence: mlResponse.confidence,
+      intent: mlResponse.intent,
+      multimodal: mlResponse.multimodal,
+      context: mlResponse.context,
+      timestamp: mlResponse.timestamp
+    });
 
   } catch (error) {
-    console.error('Chatbot error:', error);
+    console.error('Enhanced Chatbot error:', error);
     res.status(500).json({
       success: false,
-      message: 'Chatbot service unavailable'
+      message: 'Chatbot service unavailable',
+      answer: getFallbackResponse(req.body?.message || 'I understand you\'re reaching out. I\'m here to support you.')
+    });
+  }
+});
+
+// New Emotion Analysis Endpoints
+
+// Text Emotion Analysis
+app.post('/api/emotion/text', async (req, res) => {
+  try {
+    const { text, include_context = true, userId } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: 'Text is required'
+      });
+    }
+
+    const mlResponse = await callMLService('/api/emotion/text', {
+      text,
+      include_context,
+      user_id: userId
+    });
+
+    if (userId) {
+      trackEmotion(userId, mlResponse);
+    }
+
+    res.json({
+      success: true,
+      ...mlResponse
+    });
+
+  } catch (error) {
+    console.error('Text emotion analysis error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Text emotion analysis service unavailable'
+    });
+  }
+});
+
+// Facial Emotion Analysis
+app.post('/api/emotion/facial', async (req, res) => {
+  try {
+    const { image_data, userId } = req.body;
+
+    if (!image_data) {
+      return res.status(400).json({
+        success: false,
+        message: 'Image data is required'
+      });
+    }
+
+    const mlResponse = await callMLService('/api/emotion/facial', {
+      image_data,
+      user_id: userId
+    });
+
+    if (userId) {
+      trackEmotion(userId, mlResponse);
+    }
+
+    res.json({
+      success: true,
+      ...mlResponse
+    });
+
+  } catch (error) {
+    console.error('Facial emotion analysis error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Facial emotion analysis service unavailable'
+    });
+  }
+});
+
+// Voice Emotion Analysis
+app.post('/api/emotion/voice', async (req, res) => {
+  try {
+    const { audio_data, userId } = req.body;
+
+    if (!audio_data) {
+      return res.status(400).json({
+        success: false,
+        message: 'Audio data is required'
+      });
+    }
+
+    const mlResponse = await callMLService('/api/emotion/voice', {
+      audio_data,
+      user_id: userId
+    });
+
+    if (userId) {
+      trackEmotion(userId, mlResponse);
+    }
+
+    res.json({
+      success: true,
+      ...mlResponse
+    });
+
+  } catch (error) {
+    console.error('Voice emotion analysis error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Voice emotion analysis service unavailable'
+    });
+  }
+});
+
+// Multi-Modal Emotion Analysis
+app.post('/api/emotion/multimodal', async (req, res) => {
+  try {
+    const { text, image_data, audio_data, userId } = req.body;
+
+    if (!text && !image_data && !audio_data) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one input modality is required'
+      });
+    }
+
+    const mlResponse = await callMLService('/api/emotion/multimodal', {
+      text,
+      image_data,
+      audio_data,
+      user_id: userId
+    });
+
+    if (userId) {
+      trackEmotion(userId, mlResponse);
+    }
+
+    // Broadcast multimodal emotion update
+    if (userId && mlResponse.emotion && mlResponse.emotion !== 'uncertain') {
+      const emotionUpdate = {
+        type: 'multimodal_emotion_update',
+        userId,
+        emotion: mlResponse.emotion,
+        confidence: mlResponse.confidence,
+        multimodal: mlResponse.multimodal,
+        timestamp: new Date().toISOString()
+      };
+
+      wss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(emotionUpdate));
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      ...mlResponse
+    });
+
+  } catch (error) {
+    console.error('Multi-modal emotion analysis error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Multi-modal emotion analysis service unavailable'
+    });
+  }
+});
+
+// Emotion Analytics Dashboard
+app.get('/api/emotion/dashboard', (req, res) => {
+  try {
+    const { userId, timeRange = '24h' } = req.query;
+
+    let data = userId ? emotionAnalytics.get(userId) || [] : emotionHistory;
+
+    // Filter by time range
+    const now = new Date();
+    let timeLimit;
+
+    switch (timeRange) {
+      case '1h':
+        timeLimit = new Date(now.getTime() - 60 * 60 * 1000);
+        break;
+      case '24h':
+        timeLimit = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        timeLimit = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        timeLimit = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        timeLimit = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    }
+
+    data = data.filter(entry => new Date(entry.timestamp) >= timeLimit);
+
+    // Calculate analytics
+    const emotionCounts = {};
+    const emotionConfidence = {};
+    let multimodalCount = 0;
+
+    data.forEach(entry => {
+      emotionCounts[entry.emotion] = (emotionCounts[entry.emotion] || 0) + 1;
+      if (!emotionConfidence[entry.emotion]) {
+        emotionConfidence[entry.emotion] = [];
+      }
+      emotionConfidence[entry.emotion].push(entry.confidence);
+      if (entry.multimodal) {
+        multimodalCount++;
+      }
+    });
+
+    // Calculate average confidence per emotion
+    const avgConfidence = {};
+    Object.keys(emotionConfidence).forEach(emotion => {
+      const confidences = emotionConfidence[emotion];
+      avgConfidence[emotion] = confidences.reduce((a, b) => a + b, 0) / confidences.length;
+    });
+
+    // Find most frequent emotion
+    const primaryEmotion = Object.keys(emotionCounts).reduce((a, b) =>
+      emotionCounts[a] > emotionCounts[b] ? a : b, 'uncertain');
+
+    res.json({
+      success: true,
+      analytics: {
+        totalEntries: data.length,
+        timeRange,
+        primaryEmotion,
+        multimodalCount,
+        multimodalPercentage: data.length > 0 ? (multimodalCount / data.length * 100).toFixed(2) : 0,
+        emotionDistribution: emotionCounts,
+        averageConfidence: avgConfidence,
+        recentEntries: data.slice(-10).reverse() // Last 10 entries
+      }
+    });
+
+  } catch (error) {
+    console.error('Emotion dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Emotion analytics service unavailable'
+    });
+  }
+});
+
+// ML Service Health Check
+app.get('/api/emotion/health', async (req, res) => {
+  try {
+    const mlHealth = await axios.get(`${ML_SERVICE_URL}/health`, { timeout: 5000 });
+    res.json({
+      success: true,
+      express: { status: 'healthy', port: PORT },
+      mlService: mlHealth.data,
+      websocket: { connections: wss.clients.size },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      express: { status: 'healthy', port: PORT },
+      mlService: { status: 'unreachable', error: error.message },
+      websocket: { connections: wss.clients.size },
+      timestamp: new Date().toISOString()
     });
   }
 });

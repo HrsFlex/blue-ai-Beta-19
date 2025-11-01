@@ -519,7 +519,7 @@ const HealthDashboard = () => {
               className={`toggle-btn ${dataSource === 'real' || dataSource === 'mcp' ? 'active' : ''}`}
               onClick={toggleDataSource}
             >
-              {dataSource === 'mcp' ? '🤖 AI Processed' : dataSource === 'real' ? '🟢 Real Data' : '🟡 Mock Data'}
+              {dataSource === 'mcp' ? '🤖 AI Processed' : dataSource === 'real' ? '🟢 Real Data' : '🟡 Live Data'}
             </button>
             {dataSource === 'real' && (
               <span className="connection-indicator">
