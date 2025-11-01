@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import './MentalWellness.css';
-// eslint-disable-next-line no-unused-vars
-import { GoogleGenAI } from "@google/genai"; // Available for future use
+import './MentalWellnessModal.css';
 import Navbar from '../../components/Navbar/Navbar';
 import VideoRecommendation from '../../components/VideoRecommendation/VideoRecommendation';
 import MoodTracker from '../../components/MoodTracker/MoodTracker';
@@ -10,7 +8,6 @@ import DoctorReferral from '../../components/DoctorReferral/DoctorReferral';
 import Meditation from '../../components/Meditation/Meditation';
 
 const MentalWellness = () => {
-  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,12 +18,15 @@ const MentalWellness = () => {
   const [scoreAnimation, setScoreAnimation] = useState(false);
   const [conversationPhase, setConversationPhase] = useState('greeting');
   const [showMeditation, setShowMeditation] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [showDoctorModal, setShowDoctorModal] = useState(false);
   const [completedActivities, setCompletedActivities] = useState({
     videos: false,
     meditation: false
   });
-  const [meditationStarted, setMeditationStarted] = useState(false);
-  const [meditationTime, setMeditationTime] = useState(0);
+  const [recommendedActivities, setRecommendedActivities] = useState([]);
+  const [videoAttempts, setVideoAttempts] = useState(0);
+  const [previousVideos, setPreviousVideos] = useState([]);
   const messagesEndRef = useRef(null);
 
   // Enhanced AI service with multiple fallback strategies
@@ -34,7 +34,7 @@ const MentalWellness = () => {
     const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
     console.log('API Key check:', apiKey ? `${apiKey.substring(0, 10)}...` : 'Not found');
 
-    if (!apiKey || apiKey === 'your_gemini_api_key_here' || apiKey === 'demo-key') {
+    if (!apiKey || apiKey === 'AIzaSyAnY6xjgmU8dQlrleKKKT4QXG7kwjhQgrg' || apiKey === 'demo-key') {
       console.warn('Gemini API key not configured. Using enhanced demo mode.');
       return null;
     }
@@ -117,7 +117,7 @@ const MentalWellness = () => {
     // Enhanced demo mode fallback - keyword-based sentiment analysis
     const lowerText = text.toLowerCase();
 
-    // Negative indicators
+    // Negative indicators - enhanced with more sensitivity
     const negativeWords = [
       'sad', 'depressed', 'bad', 'awful', 'terrible', 'angry', 'frustrated',
       'upset', 'hurt', 'pain', 'lonely', 'empty', 'numb', 'hopeless',
@@ -125,7 +125,14 @@ const MentalWellness = () => {
       'down', 'blue', 'gloomy', 'devastated', 'heartbroken', 'crying', 'tears',
       'kill', 'suicide', 'die', 'death', 'end it', 'give up', 'can\'t live',
       'want to die', 'wanna kill', 'kill myself', 'end my life', 'suicidal',
-      'hate myself', 'worthless', 'pointless', 'no reason', 'end it all'
+      'hate myself', 'worthless', 'pointless', 'no reason', 'end it all',
+      // Additional sensitive indicators
+      'struggling', 'difficult', 'hard', 'tough', 'impossible', 'can\'t',
+      'stuck', 'trapped', 'lost', 'confused', 'scared', 'afraid',
+      'tired', 'exhausted', 'drained', 'burned out', 'giving up',
+      'not working', 'helpless', 'powerless', 'weak', 'failure',
+      'alone', 'isolated', 'abandoned', 'rejected', 'unloved',
+      'burden', 'too much', 'can\'t handle', 'over it', 'done'
     ];
 
     // Positive indicators
@@ -150,15 +157,38 @@ const MentalWellness = () => {
       }
     }
 
-    // Context-based analysis for common phrases
+    // Enhanced context-based analysis for common phrases
     if (lowerText.includes("i'm really sad") || lowerText.includes("i feel sad") ||
-        lowerText.includes("so sad") || lowerText.includes("very sad")) {
+        lowerText.includes("so sad") || lowerText.includes("very sad") ||
+        lowerText.includes("still sad") || lowerText.includes("feeling sad") ||
+        lowerText.includes("i'm sad") || lowerText.includes("im sad") ||
+        lowerText.includes("feeling down") || lowerText.includes("feeling low") ||
+        lowerText.includes("not feeling better") || lowerText.includes("still feel") ||
+        lowerText.includes("doesn't help") || lowerText.includes("not working")) {
       return 'negative';
     }
 
     if (lowerText.includes("i'm happy") || lowerText.includes("i feel good") ||
-        lowerText.includes("feeling great") || lowerText.includes("so happy")) {
+        lowerText.includes("feeling great") || lowerText.includes("so happy") ||
+        lowerText.includes("feeling better") || lowerText.includes("much better") ||
+        lowerText.includes("really good") || lowerText.includes("great")) {
       return 'positive';
+    }
+
+    // Check for persistent negative patterns
+    if (lowerText.length <= 10 &&
+        (lowerText.includes("sad") || lowerText.includes("bad") ||
+         lowerText.includes("down") || lowerText.includes("hurt"))) {
+      return 'negative'; // Short expressions of negative feelings are significant
+    }
+
+    // Check for help-seeking indicators
+    if (lowerText.includes("help") || lowerText.includes("support") ||
+        lowerText.includes("need") || lowerText.includes("talk")) {
+      // Check context - if help-seeking with negative words, prioritize negative
+      if (negativeWords.some(word => lowerText.includes(word))) {
+        return 'negative';
+      }
     }
 
     return 'neutral';
@@ -415,6 +445,7 @@ const MentalWellness = () => {
     try {
       // Analyze sentiment
       const detectedSentiment = await analyzeSentiment(input);
+      const lowerMessage = input.toLowerCase();
 
       // Generate bot response
       const botResponseText = await generateBotResponse(input, detectedSentiment);
@@ -428,44 +459,211 @@ const MentalWellness = () => {
 
       setMessages(prev => [...prev, botMessage]);
 
-      // If sentiment is negative, automatically launch a random activity (but not during active phases)
-      if (detectedSentiment === 'negative' &&
-          (conversationPhase === 'greeting' || conversationPhase === 'post-video' || conversationPhase === 'post-meditation') &&
-          !showVideos && !showMeditation) {
+      // Enhanced negative sentiment detection - works continuously and proactively
+      if (detectedSentiment === 'negative') {
 
+        // Always detect negative sentiment regardless of conversation phase or active activities
         setTimeout(() => {
-          // Randomly choose between videos and meditation (75% chance for videos)
-          const randomChoice = Math.random() < 0.75;
+          let responseText = '';
 
-          if (randomChoice) {
-            // Launch videos
-            const videos = getFunnyVideos();
-            setCurrentVideos(videos);
-            setShowVideos(true);
-            setConversationPhase('watching');
+          if (conversationPhase === 'post-video' || conversationPhase === 'post-meditation') {
+            // Check if user is saying "still sad" - if so, re-launch videos immediately
+            if (lowerMessage.includes('still sad') || lowerMessage.includes('still feeling sad') || lowerMessage.includes('sad again')) {
+              // Re-launch videos with different content
+              const newVideos = getFunnyVideos().filter(video =>
+                !previousVideos.some(prevVideo => prevVideo.url === video.url)
+              );
 
-            const videoMessage = {
+              if (newVideos.length > 0) {
+                setCurrentVideos(newVideos);
+                setPreviousVideos(prev => [...prev, ...newVideos]);
+                setShowVideos(true);
+                setConversationPhase('watching');
+                setVideoAttempts(prev => prev + 1);
+
+                const videoMessage = {
+                  id: Date.now() + 2,
+                  text: "I hear you're still feeling sad, and I want to help. Let me show you some different uplifting videos that might resonate better with you. Sometimes it takes a few tries to find what works. Take your time with these, and I'm here with you through this. 💙\n\nWatching these videos will earn you +10 wellness points! 🌟",
+                  sender: 'bot',
+                  timestamp: new Date()
+                };
+                setMessages(prev => [...prev, videoMessage]);
+              } else {
+                // If we've shown all videos, show activity modal
+                responseText = "I notice you're still feeling down even after trying different videos. That's completely okay - sometimes we need multiple approaches to find what works for you.\n\nI'm going to show you some different wellness activities that might help. Please choose one that feels right for you. 💙";
+
+                const supportMessage = {
+                  id: Date.now() + 2,
+                  text: responseText,
+                  sender: 'bot',
+                  timestamp: new Date(),
+                  showActivityOptions: true
+                };
+                setMessages(prev => [...prev, supportMessage]);
+
+                setRecommendedActivities(getActivityRecommendations());
+                setShowActivityModal(true);
+              }
+            } else if (videoAttempts >= 1) {
+              // After second video attempt, show activity modal
+              responseText = "I notice you're still feeling down even after trying videos. That's completely okay - sometimes we need multiple approaches to find what works for you.\n\nI'm going to show you some different wellness activities that might help. Please choose one that feels right for you. 💙";
+
+              const supportMessage = {
+                id: Date.now() + 2,
+                text: responseText,
+                sender: 'bot',
+                timestamp: new Date(),
+                showActivityOptions: true
+              };
+              setMessages(prev => [...prev, supportMessage]);
+
+              setRecommendedActivities(getActivityRecommendations());
+              setShowActivityModal(true);
+            } else {
+              // First negative response after activity - re-launch videos
+              const newVideos = getFunnyVideos().filter(video =>
+                !previousVideos.some(prevVideo => prevVideo.url === video.url)
+              );
+
+              if (newVideos.length > 0) {
+                setCurrentVideos(newVideos);
+                setPreviousVideos(prev => [...prev, ...newVideos]);
+                setShowVideos(true);
+                setConversationPhase('watching');
+                setVideoAttempts(prev => prev + 1);
+
+                const videoMessage = {
+                  id: Date.now() + 2,
+                  text: "I hear that the previous content didn't fully help. Let me try some different videos that might resonate better with you. Sometimes it takes finding the right content to lift our spirits. I'm here with you through this. 💙\n\nWatching these videos will earn you +10 wellness points! 🌟",
+                  sender: 'bot',
+                  timestamp: new Date()
+                };
+                setMessages(prev => [...prev, videoMessage]);
+              } else {
+                // Fallback to activity modal if no new videos
+                responseText = "I notice you're still feeling down even after the activity. That's completely okay - sometimes we need multiple approaches to find what works for you.\n\nI'm going to show you some different wellness activities that might help. Please choose one that feels right for you. 💙";
+
+                const supportMessage = {
+                  id: Date.now() + 2,
+                  text: responseText,
+                  sender: 'bot',
+                  timestamp: new Date(),
+                  showActivityOptions: true
+                };
+                setMessages(prev => [...prev, supportMessage]);
+
+                setRecommendedActivities(getActivityRecommendations());
+                setShowActivityModal(true);
+              }
+            }
+
+          } else if (conversationPhase === 'watching' && showVideos) {
+            // While videos are showing but user is still expressing sadness
+            responseText = "I hear that you're still feeling sad even while watching the videos. That's completely understandable. Please know that I'm here with you through this. Sometimes when we're really struggling, we need different types of support.\n\nI want you to know that your feelings are valid, and you don't have to pretend to feel better. When you're ready, I can suggest other activities that might be more helpful for you right now. \n\nTake your time with the videos, but remember there are other options available whenever you need them. 💙";
+
+            const duringVideoSupportMessage = {
               id: Date.now() + 2,
-              text: "I've selected some uplifting videos for you. Take your time watching them, and let me know when you're done. Watching all videos will earn you +10 wellness points! 🌟",
+              text: responseText,
               sender: 'bot',
               timestamp: new Date()
             };
-            setMessages(prev => [...prev, videoMessage]);
+            setMessages(prev => [...prev, duringVideoSupportMessage]);
+
+          } else if (conversationPhase === 'greeting' || conversationPhase === 'needs-support') {
+            // During initial greeting phase or when support is needed - launch activities (favor videos more)
+            // Special handling for "still sad" keywords - force video selection
+            const forceVideoSelection = lowerMessage.includes('still sad') || lowerMessage.includes('still feeling sad') || lowerMessage.includes('sad again');
+            const randomChoice = forceVideoSelection || Math.random() < 0.95; // Increased to 95% with forced selection
+
+            if (randomChoice) {
+              // Launch videos
+              const videos = getFunnyVideos();
+              setCurrentVideos(videos);
+              setPreviousVideos(videos); // Track initial videos
+              setShowVideos(true);
+              setConversationPhase('watching');
+              setVideoAttempts(1); // Track first attempt
+
+              const videoMessage = {
+                id: Date.now() + 2,
+                text: "I've selected some uplifting videos for you. Take your time watching them, and let me know when you're done. Watching all videos will earn you +10 wellness points! 🌟",
+                sender: 'bot',
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, videoMessage]);
+            } else {
+              // Launch meditation
+              setShowMeditation(true);
+              setConversationPhase('meditating');
+
+              const meditationMessage = {
+                id: Date.now() + 2,
+                text: "I've started a 3-minute breathing exercise for you. Find a comfortable position, close your eyes, and follow the guided instructions. Completing this will earn you +15 wellness points! 🧘‍♀️",
+                sender: 'bot',
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, meditationMessage]);
+            }
           } else {
-            // Launch meditation
-            setShowMeditation(true);
-            setConversationPhase('meditating');
-            setMeditationStarted(true);
+            // Any other phase - provide continuous support and auto-launch
+            responseText = "I hear that you're still going through a difficult time. Your feelings are completely valid, and I want you to know that I'm here for you continuously. \n\nSince you're still struggling, I'm going to take proactive steps to help you feel better. Different approaches work for different people, and we'll find what resonates with you.\n\nI'm going to start a new wellness activity for you right away... 💙";
 
-            const meditationMessage = {
+            const continuousSupportMessage = {
               id: Date.now() + 2,
-              text: "I've started a 3-minute breathing exercise for you. Find a comfortable position, close your eyes, and follow the guided instructions. Completing this will earn you +15 wellness points! 🧘‍♀️",
+              text: responseText,
               sender: 'bot',
               timestamp: new Date()
             };
-            setMessages(prev => [...prev, meditationMessage]);
+            setMessages(prev => [...prev, continuousSupportMessage]);
+
+            setTimeout(() => {
+              autoLaunchAlternativeActivity();
+            }, 3000);
           }
-        }, 2000);
+
+          // Function to auto-launch alternative activity
+          function autoLaunchAlternativeActivity() {
+            // Launch something different from what was just tried
+            if (conversationPhase === 'post-video') {
+              // Try meditation after videos
+              setShowMeditation(true);
+              setConversationPhase('meditating');
+
+              const meditationMessage = {
+                id: Date.now() + 3,
+                text: "Since the videos didn't fully help, let's try a calming meditation instead. This 3-minute breathing exercise can help ground you in the present moment. Take a comfortable position and follow the guidance. 🧘‍♀️",
+                sender: 'bot',
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, meditationMessage]);
+
+            } else if (conversationPhase === 'post-meditation') {
+              // Try videos after meditation
+              const videos = getFunnyVideos();
+              setCurrentVideos(videos);
+              setShowVideos(true);
+              setConversationPhase('watching');
+
+              const videoMessage = {
+                id: Date.now() + 3,
+                text: "Let's try some different uplifting content. Sometimes changing the type of activity can make all the difference. I've selected some fresh videos that might help lift your spirits. 🎬",
+                sender: 'bot',
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, videoMessage]);
+
+            } else {
+              // Strong walk recommendation
+              const walkMessage = {
+                id: Date.now() + 3,
+                text: "🚶‍♀️ **I strongly recommend taking a 15-minute walk right now**\n\nPhysical movement is one of the most effective ways to improve mood naturally. Even if you can't go outside:\n\n🏠 Walk around your home for 10-15 minutes\n🎵 Put on uplifting music while walking\n💪 Focus on how your body feels moving\n\nWould you like to try this, or would you prefer I suggest something else? Your wellbeing is my priority. 💙",
+                sender: 'bot',
+                timestamp: new Date()
+              };
+              setMessages(prev => [...prev, walkMessage]);
+            }
+          }
+        }, 1500); // Faster response for ongoing sadness
       }
 
     } catch (error) {
@@ -485,7 +683,6 @@ const MentalWellness = () => {
   
   const handleMeditationComplete = () => {
     setShowMeditation(false);
-    setMeditationStarted(false);
 
     // Update score with animation and activities
     updateScoreWithAnimation(15);
@@ -535,11 +732,23 @@ const MentalWellness = () => {
     const newScore = userScore + totalPoints;
     updateScoreWithAnimation(totalPoints);
 
+    let messageText = `Welcome back! You've watched ${videosWatched} out of 5 videos and earned +${totalPoints} wellness points! 🌟 `;
+
+    if (videosWatched === 5) {
+      messageText += 'Bonus +5 points for watching all videos! 🎉';
+    } else {
+      // Add strict recommendation for incomplete videos
+      messageText += `\n\n⚠️ **Important Notice**: You didn't complete all the recommended videos. Since you're still working on your mental wellness, I strongly recommend:\n\n🚶‍♀️ **Take a 15-minute walk outside** - Fresh air and gentle movement can significantly boost your mood\n🎵 **Listen to uplifting music** - Create a playlist of songs that make you happy\n📝 **Journal your thoughts** - Write down what's on your mind for 5 minutes\n🧘‍♀️ **Try deep breathing** - Take 10 slow, deep breaths\n\nPhysical activity is especially important for mental wellness. A walk can help clear your mind and release endorphins. Would you like to commit to one of these activities?`;
+    }
+
+    messageText += `\n\nYour current wellness score is now ${newScore}. ✨`;
+
     const message = {
       id: Date.now(),
-      text: `Welcome back! You've watched ${videosWatched} out of 5 videos and earned +${totalPoints} wellness points! 🌟 ${videosWatched === 5 ? 'Bonus +5 points for watching all videos! 🎉' : ''} Your current wellness score is now ${newScore}. How are you feeling now? Did the content help lift your mood even a little? 🌈`,
+      text: messageText,
       sender: 'bot',
-      timestamp: new Date()
+      timestamp: new Date(),
+      showMoodReview: true // Flag to show mood tracker
     };
     setMessages(prev => [...prev, message]);
 
@@ -559,21 +768,190 @@ const MentalWellness = () => {
     }
   };
 
+  // Get activity recommendations
+  const getActivityRecommendations = () => {
+    return [
+      {
+        id: 'walk',
+        name: '15-Minute Walk',
+        description: 'Physical movement releases endorphins and improves mood naturally',
+        duration: '15 minutes',
+        icon: '🚶‍♀️',
+        points: 20,
+        priority: 'high',
+        instructions: [
+          'Put on comfortable shoes',
+          'Step outside or walk around your home',
+          'Focus on your breathing and surroundings',
+          'Listen to uplifting music if desired'
+        ]
+      },
+      {
+        id: 'breathing',
+        name: 'Box Breathing Exercise',
+        description: 'Calms your nervous system and reduces anxiety',
+        duration: '5 minutes',
+        icon: '🫁',
+        points: 10,
+        priority: 'medium',
+        instructions: [
+          'Breathe in for 4 counts',
+          'Hold for 4 counts',
+          'Breathe out for 4 counts',
+          'Hold for 4 counts',
+          'Repeat for 5 cycles'
+        ]
+      },
+      {
+        id: 'music',
+        name: 'Uplifting Music',
+        description: 'Music can instantly shift your emotional state',
+        duration: '10 minutes',
+        icon: '🎵',
+        points: 8,
+        priority: 'medium',
+        instructions: [
+          'Put on your favorite uplifting songs',
+          'Close your eyes and focus on the music',
+          'Let yourself move or dance if it feels good'
+        ]
+      },
+      {
+        id: 'journal',
+        name: 'Quick Journaling',
+        description: 'Writing down thoughts can help process emotions',
+        duration: '10 minutes',
+        icon: '📝',
+        points: 12,
+        priority: 'low',
+        instructions: [
+          'Write down what you\'re feeling',
+          'List 3 things you\'re grateful for',
+          'Write one positive thing about yourself'
+        ]
+      },
+      {
+        id: 'talk',
+        name: 'Reach Out to Someone',
+        description: 'Connection with others is powerful for mood improvement',
+        duration: '15 minutes',
+        icon: '📞',
+        points: 15,
+        priority: 'high',
+        instructions: [
+          'Call or text a friend or family member',
+          'Be honest about how you\'re feeling',
+          'Ask how they\'re doing too'
+        ]
+      }
+    ];
+  };
+
+  // Get doctor recommendations
+  const getDoctorRecommendations = () => {
+    return [
+      {
+        name: 'Dr. Sarah Johnson',
+        specialty: 'Clinical Psychology',
+        credentials: 'PhD, PsyD',
+        experience: '15 years',
+        rating: 4.8,
+        availability: 'Available today',
+        consultationFee: '$150',
+        telehealth: true,
+        image: '👩‍⚕️',
+        contact: {
+          phone: '555-0123',
+          website: 'www.drsjohnson.com'
+        }
+      },
+      {
+        name: 'Dr. Michael Chen',
+        specialty: 'Psychiatry',
+        credentials: 'MD',
+        experience: '12 years',
+        rating: 4.9,
+        availability: 'Tomorrow 2PM',
+        consultationFee: '$200',
+        telehealth: true,
+        image: '👨‍⚕️',
+        contact: {
+          phone: '555-0456',
+          website: 'www.drchenpsychiatry.com'
+        }
+      },
+      {
+        name: 'Dr. Emily Rodriguez',
+        specialty: 'Licensed Counselor',
+        credentials: 'LPC, NCC',
+        experience: '8 years',
+        rating: 4.7,
+        availability: 'This week',
+        consultationFee: '$120',
+        telehealth: true,
+        image: '👩‍⚕️',
+        contact: {
+          phone: '555-0789',
+          website: 'www.emilyrodriguezcounseling.com'
+        }
+      }
+    ];
+  };
+
+  // Handle activity selection
+  const handleActivitySelect = (activity) => {
+    setShowActivityModal(false);
+
+    const activityMessage = {
+      id: Date.now(),
+      text: `Great choice! I'm starting "${activity.name}" for you. This should take about ${activity.duration}.\n\n**Instructions:**\n${activity.instructions.map((inst, i) => `${i+1}. ${inst}`).join('\n')}\n\nTake your time and let me know how you feel afterward. 💙`,
+      sender: 'bot',
+      timestamp: new Date()
+    };
+    setMessages(prev => [...prev, activityMessage]);
+
+    // Update score for activity initiation
+    updateScoreWithAnimation(activity.points);
+  };
+
+  // Handle activity modal close
+  const handleActivityModalClose = () => {
+    setShowActivityModal(false);
+
+    // After closing activity modal, offer doctor options
+    setTimeout(() => {
+      const doctorMessage = {
+        id: Date.now(),
+        text: "I understand if you're not ready for another activity right now. Sometimes talking to a professional can provide specialized support that activities alone may not offer.\n\nWould you like me to connect you with mental health professionals who can help? 💙",
+        sender: 'bot',
+        timestamp: new Date(),
+        showDoctorOptions: true
+      };
+      setMessages(prev => [...prev, doctorMessage]);
+
+      setShowDoctorModal(true);
+    }, 1000);
+  };
+
   const handleFinalMoodCheck = (feeling) => {
     if (feeling === 'bad') {
-      // Instead of immediately showing doctor referral, reset to allow more activities
-      setConversationPhase('greeting');
+      // Enhanced response for continued negative feelings
+      setConversationPhase('needs-support'); // More appropriate phase than 'greeting'
       const message = {
         id: Date.now(),
-        text: "I understand you're still feeling down, and I'm here to support you. Sometimes different activities work better for different people. Would you like to try another activity, or would you prefer some mental health resources? 💙",
+        text: "Thank you for being honest about how you're feeling. It's completely okay that the activity didn't fully help - mental wellness is a journey, not a quick fix. \n\n🚶‍♀️ **I strongly recommend taking a 15-minute walk right now** - Physical activity is one of the most effective ways to improve mood naturally. The combination of movement, fresh air, and change of scenery can make a real difference.\n\nOther immediate options:\n🎵 Put on your favorite uplifting music\n📞 Call or text a friend or family member\n🍵 Make yourself a warm cup of tea\n📖 Read something inspiring or comforting\n\nWould you like to try another activity with me, or would you prefer to take that walk first? I'm here to support you however you need. 💙",
         sender: 'bot',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, message]);
     } else {
+      // Reset video attempts when mood improves
+      setVideoAttempts(0);
+      setPreviousVideos([]);
+
       const message = {
         id: Date.now(),
-        text: "That's wonderful to hear! I'm glad I could help brighten your day. Remember, I'm always here when you need a friend to talk to. Take care! 🌟",
+        text: "That's wonderful to hear! I'm so glad the activity helped improve your mood even a little. Every positive step counts, and you should be proud of yourself for taking care of your mental wellness. \n\nRemember that I'm always here when you need support, whether you're feeling great or going through a tough time. Keep up the great work on your mental health journey! 🌟\n\nWould you like to continue chatting, or are you feeling ready to wrap up for now? 😊",
         sender: 'bot',
         timestamp: new Date()
       };
@@ -655,7 +1033,136 @@ const MentalWellness = () => {
       {(conversationPhase === 'post-video' || conversationPhase === 'post-meditation') && !showVideos && !showMeditation && !showDoctorReferral && (
         <MoodTracker
           onMoodSelect={handleFinalMoodCheck}
+          mandatory={messages.some(msg => msg.showMoodReview)}
         />
+      )}
+
+      {/* Activity Modal */}
+      {showActivityModal && (
+        <div className="activity-modal-overlay">
+          <div className="activity-modal">
+            <div className="modal-header">
+              <h3>Choose an Activity to Help You Feel Better 💙</h3>
+              <button
+                className="close-button"
+                onClick={handleActivityModalClose}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-subtitle">
+              Sometimes different activities work better for different people. Select one that feels right for you.
+            </div>
+            <div className="activities-grid">
+              {recommendedActivities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="activity-card"
+                  onClick={() => handleActivitySelect(activity)}
+                >
+                  <div className="activity-icon">{activity.icon}</div>
+                  <h4>{activity.name}</h4>
+                  <p>{activity.description}</p>
+                  <div className="activity-meta">
+                    <span className="duration">⏱️ {activity.duration}</span>
+                    <span className="points">+{activity.points} pts</span>
+                    <span className={`priority ${activity.priority}`}>{activity.priority}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="modal-footer">
+              <button
+                className="skip-button"
+                onClick={handleActivityModalClose}
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Doctor Modal */}
+      {showDoctorModal && (
+        <div className="doctor-modal-overlay">
+          <div className="doctor-modal">
+            <div className="modal-header">
+              <h3>Connect with Mental Health Professionals 🏥</h3>
+              <button
+                className="close-button"
+                onClick={() => setShowDoctorModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-subtitle">
+              Talking to a professional can provide specialized support and evidence-based treatments.
+            </div>
+            <div className="doctors-grid">
+              {getDoctorRecommendations().map((doctor, index) => (
+                <div key={index} className="doctor-card">
+                  <div className="doctor-header">
+                    <div className="doctor-avatar">{doctor.image}</div>
+                    <div className="doctor-info">
+                      <h4>{doctor.name}</h4>
+                      <p className="specialty">{doctor.specialty}</p>
+                      <p className="credentials">{doctor.credentials}</p>
+                      <div className="doctor-meta">
+                        <span className="rating">⭐ {doctor.rating}</span>
+                        <span className="experience">{doctor.experience}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="doctor-details">
+                    <p className="availability">
+                      <strong>Available:</strong> {doctor.availability}
+                    </p>
+                    <p className="consultation">
+                      <strong>Consultation:</strong> {doctor.consultationFee}
+                    </p>
+                    {doctor.telehealth && (
+                      <p className="telehealth">📱 Telehealth available</p>
+                    )}
+                  </div>
+                  <div className="doctor-actions">
+                    <button className="contact-btn primary">
+                      📞 Call {doctor.contact.phone}
+                    </button>
+                    <button className="contact-btn secondary">
+                      🌐 Website
+                    </button>
+                    <button className="contact-btn tertiary">
+                      📅 Book Appointment
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="emergency-section">
+              <h4>🚨 Need Immediate Help?</h4>
+              <div className="emergency-contacts">
+                <button className="emergency-btn">
+                  📞 Call 988 Crisis Line
+                </button>
+                <button className="emergency-btn">
+                  💬 Text HOME to 741741
+                </button>
+                <button className="emergency-btn">
+                  🏥 Emergency Services (911)
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="close-modal-btn"
+                onClick={() => setShowDoctorModal(false)}
+              >
+                I'll think about it
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <form className="message-input-form" onSubmit={handleSendMessage}>
@@ -666,12 +1173,12 @@ const MentalWellness = () => {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type your message..."
             className="message-input"
-            disabled={isLoading || showVideos}
+            disabled={isLoading || showVideos || showActivityModal || showDoctorModal}
           />
           <button
             type="submit"
             className="send-button"
-            disabled={isLoading || showVideos || !input.trim()}
+            disabled={isLoading || showVideos || showActivityModal || showDoctorModal || !input.trim()}
           >
             {isLoading ? '...' : 'Send'}
           </button>

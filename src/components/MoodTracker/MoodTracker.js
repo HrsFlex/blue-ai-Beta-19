@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './MoodTracker.css';
 
-const MoodTracker = ({ onMoodSelect }) => {
+const MoodTracker = ({ onMoodSelect, mandatory = false }) => {
   const [selectedMood, setSelectedMood] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
 

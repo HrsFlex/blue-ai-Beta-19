@@ -1,0 +1,710 @@
+/* Modal Overlay Styles */
+.activity-modal-overlay,
+.doctor-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 24px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* Activity Modal Styles */
+.activity-modal {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 24px;
+  max-width: 900px;
+  max-height: 90vh;
+  width: 100%;
+  overflow: hidden;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.doctor-modal {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 24px;
+  max-width: 1200px;
+  max-height: 90vh;
+  width: 100%;
+  overflow: hidden;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+  animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header */
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32px 32px 16px 32px;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+  opacity: 0.3;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.close-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  font-size: 20px;
+  cursor: pointer;
+  color: white;
+  padding: 12px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(10px);
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.modal-subtitle {
+  padding: 16px 32px 32px 32px;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 400;
+  border-bottom: 1px solid #e2e8f0;
+  background: rgba(248, 250, 252, 0.5);
+}
+
+/* Activities Grid */
+.activities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 24px;
+  padding: 32px;
+}
+
+.activity-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 32px 24px;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.activity-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: all 0.4s ease;
+}
+
+.activity-card:hover {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow:
+    0 20px 40px -15px rgba(99, 102, 241, 0.3),
+    0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+.activity-card:hover::before {
+  height: 8px;
+  background: linear-gradient(90deg, #8b5cf6, #6366f1);
+}
+
+.activity-icon {
+  font-size: 56px;
+  margin-bottom: 20px;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  transition: transform 0.4s ease;
+}
+
+.activity-card:hover .activity-icon {
+  transform: scale(1.1);
+}
+
+.activity-card h4 {
+  margin: 0 0 16px 0;
+  color: #1e293b;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.activity-card p {
+  margin: 0 0 24px 0;
+  color: #64748b;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.activity-meta {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.activity-meta span {
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.activity-meta .duration {
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1e40af;
+}
+
+.activity-meta .points {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  color: #166534;
+}
+
+.activity-meta .priority {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.activity-meta .priority.high {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Doctor Cards */
+.doctors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 32px;
+  padding: 32px;
+}
+
+.doctor-card {
+  background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 28px;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.doctor-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.doctor-card:hover {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  transform: translateY(-6px);
+  box-shadow:
+    0 25px 50px -12px rgba(16, 185, 129, 0.25),
+    0 0 0 1px rgba(16, 185, 129, 0.1);
+}
+
+.doctor-header {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 24px;
+  align-items: center;
+}
+
+.doctor-avatar {
+  font-size: 48px;
+  width: 80px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-radius: 50%;
+  border: 3px solid #10b981;
+  box-shadow: 0 8px 25px -8px rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+}
+
+.doctor-info h4 {
+  margin: 0 0 8px 0;
+  color: #1e293b;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.doctor-info .specialty {
+  margin: 0 0 6px 0;
+  color: #059669;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.doctor-info .credentials {
+  margin: 0 0 12px 0;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.doctor-meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.doctor-meta .rating {
+  color: #f59e0b;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.doctor-meta .experience {
+  color: #64748b;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.doctor-details {
+  margin-bottom: 24px;
+  padding: 20px;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(16, 185, 129, 0.1);
+}
+
+.doctor-details p {
+  margin: 0 0 12px 0;
+  color: #475569;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.doctor-details p:last-child {
+  margin-bottom: 0;
+}
+
+.doctor-details .availability {
+  color: #059669;
+  font-weight: 600;
+}
+
+.doctor-details .consultation {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.doctor-details .telehealth {
+  color: #0369a1;
+  font-weight: 600;
+  margin: 0;
+}
+
+.doctor-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.contact-btn {
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+  min-width: 140px;
+  letter-spacing: 0.5px;
+}
+
+.contact-btn.primary {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 14px -2px rgba(16, 185, 129, 0.4);
+}
+
+.contact-btn.primary:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(16, 185, 129, 0.5);
+}
+
+.contact-btn.secondary {
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  color: white;
+  box-shadow: 0 4px 14px -2px rgba(107, 114, 128, 0.3);
+}
+
+.contact-btn.secondary:hover {
+  background: linear-gradient(135deg, #4b5563, #374151);
+  transform: translateY(-2px);
+}
+
+.contact-btn.tertiary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  box-shadow: 0 4px 14px -2px rgba(59, 130, 246, 0.4);
+}
+
+.contact-btn.tertiary:hover {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.5);
+}
+
+/* Emergency Section */
+.emergency-section {
+  background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  border: 2px solid #fecaca;
+  border-radius: 20px;
+  padding: 32px;
+  margin: 0 32px 32px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.emergency-section::before {
+  content: '⚠️';
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  font-size: 24px;
+  animation: blink 2s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.emergency-section h4 {
+  margin: 0 0 24px 0;
+  color: #dc2626;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.emergency-contacts {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.emergency-btn {
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 25px -8px rgba(220, 38, 38, 0.4);
+  letter-spacing: 0.5px;
+}
+
+.emergency-btn:hover {
+  background: linear-gradient(135deg, #b91c1c, #991b1b);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px -10px rgba(220, 38, 38, 0.5);
+}
+
+/* Modal Footer */
+.modal-footer {
+  padding: 32px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+  background: rgba(248, 250, 252, 0.5);
+}
+
+.skip-button,
+.close-modal-btn {
+  padding: 16px 32px;
+  background: linear-gradient(135deg, #64748b, #475569);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 14px -2px rgba(100, 116, 139, 0.3);
+}
+
+.skip-button:hover,
+.close-modal-btn:hover {
+  background: linear-gradient(135deg, #475569, #334155);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(100, 116, 139, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .activity-modal-overlay,
+  .doctor-modal-overlay {
+    padding: 16px;
+  }
+
+  .activity-modal,
+  .doctor-modal {
+    max-height: 95vh;
+    border-radius: 20px;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 24px 24px 12px 24px;
+  }
+
+  .modal-header h3 {
+    font-size: 22px;
+  }
+
+  .modal-subtitle {
+    padding: 12px 24px 24px 24px;
+    font-size: 16px;
+  }
+
+  .activities-grid {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    gap: 20px;
+  }
+
+  .activity-card {
+    padding: 24px 20px;
+  }
+
+  .activity-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .activity-card h4 {
+    font-size: 18px;
+  }
+
+  .doctors-grid {
+    grid-template-columns: 1fr;
+    padding: 24px;
+    gap: 24px;
+  }
+
+  .doctor-card {
+    padding: 24px 20px;
+  }
+
+  .doctor-header {
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .doctor-avatar {
+    width: 70px;
+    height: 70px;
+    font-size: 40px;
+  }
+
+  .doctor-info h4 {
+    font-size: 20px;
+  }
+
+  .doctor-actions {
+    flex-direction: column;
+  }
+
+  .contact-btn {
+    min-width: auto;
+    padding: 14px 20px;
+  }
+
+  .emergency-section {
+    margin: 0 24px 24px 24px;
+    padding: 24px;
+  }
+
+  .emergency-section h4 {
+    font-size: 20px;
+  }
+
+  .emergency-contacts {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .emergency-btn {
+    justify-content: center;
+    padding: 14px 20px;
+  }
+
+  .modal-footer {
+    padding: 24px;
+  }
+
+  .skip-button,
+  .close-modal-btn {
+    padding: 14px 28px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .activity-modal-overlay,
+  .doctor-modal-overlay {
+    padding: 12px;
+  }
+
+  .modal-header {
+    padding: 20px 20px 10px 20px;
+  }
+
+  .modal-header h3 {
+    font-size: 20px;
+  }
+
+  .close-button {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .modal-subtitle {
+    padding: 10px 20px 20px 20px;
+    font-size: 15px;
+  }
+
+  .activities-grid,
+  .doctors-grid {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .activity-card,
+  .doctor-card {
+    padding: 20px 16px;
+  }
+
+  .activity-icon {
+    font-size: 44px;
+    margin-bottom: 14px;
+  }
+
+  .doctor-avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 36px;
+  }
+
+  .emergency-section {
+    margin: 0 20px 20px 20px;
+    padding: 20px;
+  }
+
+  .emergency-section h4 {
+    font-size: 18px;
+  }
+
+  .modal-footer {
+    padding: 20px;
+  }
+}
