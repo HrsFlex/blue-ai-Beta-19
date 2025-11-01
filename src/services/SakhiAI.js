@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getAIConfig } from '../config/aiConfig';
+import axios from 'axios';
 
 class SakhiAI {
   constructor() {
@@ -9,11 +10,31 @@ class SakhiAI {
     this.requestCount = 0;
     this.sessionId = this.generateSessionId();
 
+    // RAG Engine Configuration - Always enabled now
+    this.ragEnabled = true;
+    this.ragBaseUrl = 'http://localhost:5000';
+    this.ragApiKey = ''; // No API key required for local development
+
+    // Initialize local data storage
+    this.initializeDataStorage();
+
     this.initializeAI();
   }
 
   generateSessionId() {
     return `SAKHI_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+  }
+
+  initializeDataStorage() {
+    try {
+      // Initialize localStorage for document storage
+      if (!localStorage.getItem('sakhi_documents')) {
+        localStorage.setItem('sakhi_documents', JSON.stringify({}));
+      }
+      console.log('✅ Local data storage initialized in SakhiAI');
+    } catch (error) {
+      console.error('❌ Failed to initialize data storage:', error);
+    }
   }
 
   async initializeAI() {
@@ -70,6 +91,20 @@ class SakhiAI {
     try {
       this.requestCount++;
 
+      // Try RAG Engine first if enabled
+      if (this.ragEnabled) {
+        try {
+          const ragResponse = await this.generateRAGResponse(prompt, context);
+          if (ragResponse) {
+            console.log("✅ Using RAG response");
+            return ragResponse;
+          }
+        } catch (ragError) {
+          console.warn("⚠️ RAG engine failed, falling back to standard AI:", ragError.message);
+        }
+      }
+
+      // Fallback to original AI implementation
       if (!this.isInitialized || this.config.isMock) {
         return this.generateFallbackResponse(prompt, context);
       }
@@ -331,8 +366,349 @@ Please respond as Sakhi with your full emotional intelligence capabilities engag
     }
   }
 
+  // Local Storage Data Management
+  saveDocumentToLocalStorage(documentData) {
+    try {
+      const documents = JSON.parse(localStorage.getItem('sakhi_documents') || '{}');
+      documents[documentData.document_id] = documentData;
+      localStorage.setItem('sakhi_documents', JSON.stringify(documents));
+      return true;
+    } catch (error) {
+      console.error('Failed to save document to localStorage:', error);
+      return false;
+    }
+  }
+
+  getDocumentsFromLocalStorage(userId = null) {
+    try {
+      const documents = JSON.parse(localStorage.getItem('sakhi_documents') || '{}');
+      const docsArray = Object.values(documents);
+
+      if (userId) {
+        return docsArray.filter(doc => doc.userId === userId);
+      }
+
+      return docsArray;
+    } catch (error) {
+      console.error('Failed to get documents from localStorage:', error);
+      return [];
+    }
+  }
+
+  updateDocumentInLocalStorage(documentId, updates) {
+    try {
+      const documents = JSON.parse(localStorage.getItem('sakhi_documents') || '{}');
+      if (documents[documentId]) {
+        documents[documentId] = { ...documents[documentId], ...updates };
+        localStorage.setItem('sakhi_documents', JSON.stringify(documents));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to update document in localStorage:', error);
+      return false;
+    }
+  }
+
+  // RAG Engine Integration Methods
+
+  async generateRAGResponse(prompt, context = {}) {
+    try {
+      // Get user ID from context or localStorage
+      let userId = context.userId;
+      if (!userId) {
+        userId = localStorage.getItem('sessionId') || 'default';
+      }
+
+      const language = this.detectLanguage(prompt);
+
+      const requestData = {
+        query: prompt,
+        userId,
+        language,
+        options: {
+          includeMedicalAdvice: true,
+          includeSources: true,
+          style: 'supportive'
+        }
+      };
+
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      if (this.ragApiKey) {
+        headers['X-API-Key'] = this.ragApiKey;
+      }
+
+      console.log(`🔍 Calling RAG Engine for: "${prompt.substring(0, 50)}..."`);
+
+      const response = await axios.post(`${this.ragBaseUrl}/api/chat`, requestData, {
+        headers,
+        timeout: 30000 // 30 second timeout
+      });
+
+      if (response.data && response.data.success) {
+        const ragData = response.data;
+
+        // Format the response to match the expected interface
+        return {
+          text: ragData.response,
+          sources: ragData.sources || [],
+          contextUsed: ragData.contextUsed || false,
+          metadata: ragData.metadata || {},
+          ragEnabled: true,
+          language: ragData.metadata?.language || language
+        };
+      } else {
+        throw new Error('RAG engine returned unsuccessful response');
+      }
+
+    } catch (error) {
+      console.error('❌ RAG Engine error:', error.message);
+
+      if (error.response) {
+        console.error('RAG Engine response:', error.response.status, error.response.data);
+      }
+
+      // Return null to trigger fallback
+      return null;
+    }
+  }
+
+  async uploadMedicalDocument(file, userId) {
+    if (!this.ragEnabled) {
+      throw new Error('RAG engine is not enabled');
+    }
+
+    // Save document to localStorage
+    const documentId = this.generateDocumentId();
+    const documentData = {
+      document_id: documentId,
+      userId: userId,
+      filename: `${Date.now()}_${file.name}`,
+      original_name: file.name,
+      file_size: file.size,
+      file_type: file.type,
+      document_type: this.detectDocumentType(file.name),
+      processing_status: 'uploading',
+      upload_timestamp: new Date().toISOString()
+    };
+
+    this.saveDocumentToLocalStorage(documentData);
+    console.log('✅ Document metadata saved to localStorage');
+
+    try {
+      const formData = new FormData();
+      formData.append('pdf', file);
+      formData.append('userId', userId);
+
+      const headers = {
+        'Content-Type': 'multipart/form-data'
+      };
+
+      if (this.ragApiKey) {
+        headers['X-API-Key'] = this.ragApiKey;
+      }
+
+      console.log(`📄 Uploading document: ${file.name}`);
+
+      const response = await axios.post(`${this.ragBaseUrl}/api/documents/upload`, formData, {
+        headers,
+        timeout: 60000 // 60 second timeout for file upload
+      });
+
+      if (response.data && response.data.success) {
+        // Update document status in localStorage
+        this.updateDocumentInLocalStorage(documentId, {
+          processing_status: 'completed',
+          rag_document_id: response.data.document?.id,
+          completed_timestamp: new Date().toISOString()
+        });
+
+        return response.data;
+      } else {
+        // Update document status to failed in localStorage
+        this.updateDocumentInLocalStorage(documentId, {
+          processing_status: 'failed',
+          error_message: 'Upload failed',
+          failed_timestamp: new Date().toISOString()
+        });
+        throw new Error('Document upload failed');
+      }
+
+    } catch (error) {
+      console.error('❌ Document upload error:', error);
+      throw new Error(`Failed to upload document: ${error.message}`);
+    }
+  }
+
+  async getUserDocuments(userId, limit = 50) {
+    if (!this.ragEnabled) {
+      return [];
+    }
+
+    // Get documents from localStorage first
+    const localDocuments = this.getDocumentsFromLocalStorage(userId);
+    if (localDocuments.length > 0) {
+      console.log(`✅ Retrieved ${localDocuments.length} documents from localStorage`);
+      return localDocuments.slice(0, limit);
+    }
+
+    // Fallback to RAG engine API
+    try {
+      const headers = {};
+      if (this.ragApiKey) {
+        headers['X-API-Key'] = this.ragApiKey;
+      }
+
+      const response = await axios.get(`${this.ragBaseUrl}/api/documents?userId=${userId}&limit=${limit}`, {
+        headers,
+        timeout: 10000
+      });
+
+      if (response.data && response.data.success) {
+        const ragDocuments = response.data.documents || [];
+
+        // Save to localStorage for future use
+        if (ragDocuments.length > 0) {
+          for (const doc of ragDocuments) {
+            this.saveDocumentToLocalStorage({
+              document_id: doc.id,
+              userId: userId,
+              filename: doc.filename,
+              original_name: doc.filename,
+              file_size: doc.fileSize || 0,
+              file_type: 'application/pdf',
+              document_type: this.detectDocumentType(doc.filename),
+              metadata: doc.metadata || {},
+              processing_status: 'completed',
+              upload_timestamp: new Date().toISOString()
+            });
+          }
+          console.log(`✅ Saved ${ragDocuments.length} documents to localStorage`);
+        }
+
+        return ragDocuments;
+      } else {
+        return [];
+      }
+
+    } catch (error) {
+      console.error('❌ Error fetching user documents:', error);
+      return [];
+    }
+  }
+
+  async synthesizeSpeech(text, emotion = 'caring', language = 'auto') {
+    if (!this.ragEnabled) {
+      throw new Error('RAG engine is not enabled');
+    }
+
+    try {
+      const requestData = {
+        text,
+        emotion,
+        options: {
+          language
+        }
+      };
+
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      if (this.ragApiKey) {
+        headers['X-API-Key'] = this.ragApiKey;
+      }
+
+      const response = await axios.post(`${this.ragBaseUrl}/api/voice/emotional`, requestData, {
+        headers,
+        timeout: 15000 // 15 second timeout
+      });
+
+      if (response.data && response.data.success) {
+        return {
+          audioUrl: `${this.ragBaseUrl}${response.data.audioUrl}`,
+          duration: response.data.duration,
+          language: response.data.language,
+          emotion: response.data.emotion
+        };
+      } else {
+        throw new Error('Speech synthesis failed');
+      }
+
+    } catch (error) {
+      console.error('❌ Speech synthesis error:', error);
+      throw new Error(`Failed to synthesize speech: ${error.message}`);
+    }
+  }
+
+  detectLanguage(text) {
+    // Simple language detection based on Devanagari script presence
+    const devanagariPattern = /[\u0900-\u097F]/;
+    const hasDevanagari = devanagariPattern.test(text);
+
+    if (hasDevanagari) {
+      return 'hi'; // Hindi
+    } else {
+      return 'en'; // English
+    }
+  }
+
+  generateDocumentId() {
+    return `DOC_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+  }
+
+  detectDocumentType(filename) {
+    const name = filename.toLowerCase();
+
+    if (name.includes('blood') || name.includes('lab') || name.includes('test')) {
+      return 'blood_test';
+    } else if (name.includes('x-ray') || name.includes('xray') || name.includes('radiology')) {
+      return 'xray';
+    } else if (name.includes('mri') || name.includes('scan') || name.includes('imaging')) {
+      return 'imaging';
+    } else if (name.includes('prescription') || name.includes('medicine') || name.includes('drug')) {
+      return 'prescription';
+    } else if (name.includes('report') || name.includes('result')) {
+      return 'medical_report';
+    } else {
+      return 'other';
+    }
+  }
+
+  async checkRAGHealth() {
+    if (!this.ragEnabled) {
+      return { status: 'disabled', message: 'RAG engine is not enabled' };
+    }
+
+    try {
+      const headers = {};
+      if (this.ragApiKey) {
+        headers['X-API-Key'] = this.ragApiKey;
+      }
+
+      const response = await axios.get(`${this.ragBaseUrl}/health`, {
+        headers,
+        timeout: 5000
+      });
+
+      return response.data;
+
+    } catch (error) {
+      return {
+        status: 'unhealthy',
+        message: error.message,
+        url: this.ragBaseUrl
+      };
+    }
+  }
+
   // Public API methods
   async checkHealth() {
+    const ragHealth = await this.checkRAGHealth();
+
     return {
       status: this.isInitialized ? 'healthy' : 'degraded',
       model: this.config.model.name,
@@ -340,7 +716,12 @@ Please respond as Sakhi with your full emotional intelligence capabilities engag
       version: this.config.model.version,
       sessionId: this.sessionId,
       requestsProcessed: this.requestCount,
-      isMock: this.config.isMock
+      isMock: this.config.isMock,
+      rag: {
+        enabled: this.ragEnabled,
+        baseUrl: this.ragBaseUrl,
+        health: ragHealth
+      }
     };
   }
 

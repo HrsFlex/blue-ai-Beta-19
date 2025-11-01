@@ -411,6 +411,15 @@ const ChatBot = () => {
   const [audioSource, setAudioSource] = useState(null);
   const [playing, setPlaying] = useState(false);
   const [inputText, setInputText] = useState("");
+
+  // RAG-related state
+  const [documents, setDocuments] = useState([]);
+  const [showDocumentUpload, setShowDocumentUpload] = useState(false);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [ragEnabled, setRagEnabled] = useState(false);
+  const [ragConnected, setRagConnected] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(null);
+  const fileInputRef = useRef(null);
   // End of play
   function playerEnded(e) {
     setAudioSource(null);
@@ -418,11 +427,98 @@ const ChatBot = () => {
     setPlaying(false);
   }
   const name = JSON.parse(localStorage.getItem("data"))?.name;
+  const userId = localStorage.getItem('sessionId') || 'default';
   // Player is read
   function playerReady(e) {
     audioPlayer.current.audioEl.current.play();
     setPlaying(true);
   }
+
+  // Initialize RAG functionality
+  useEffect(() => {
+    // RAG is always enabled with our backend
+    setRagEnabled(true);
+    checkRAGConnection();
+    loadUserDocuments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Check RAG backend connection
+  const checkRAGConnection = async () => {
+    try {
+      const response = await fetch('http://localhost:6000/api/health');
+      if (response.ok) {
+        setRagConnected(true);
+        console.log('✅ RAG Backend connected');
+      } else {
+        setRagConnected(false);
+        console.warn('⚠️ RAG Backend not responding');
+      }
+    } catch (error) {
+      setRagConnected(false);
+      console.warn('⚠️ RAG Backend unavailable:', error.message);
+    }
+  };
+
+  // Load user documents
+  const loadUserDocuments = async () => {
+    try {
+      const userDocs = await sakhiAI.getUserDocuments(userId);
+      setDocuments(userDocs);
+    } catch (error) {
+      console.error('Failed to load user documents:', error);
+    }
+  };
+
+  // Handle document upload
+  const handleDocumentUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      alert('Please upload a PDF file');
+      return;
+    }
+
+    setUploadingDocument(true);
+    setUploadProgress(0);
+
+    try {
+      console.log('Uploading document:', file.name);
+      const result = await sakhiAI.uploadMedicalDocument(file, userId);
+
+      console.log('Document uploaded successfully:', result);
+      await loadUserDocuments(); // Refresh documents list
+      setUploadProgress(100);
+
+      // Show success message
+      setChats(prev => [...prev, {
+        role: "Sakhi",
+        msg: `Great! I've successfully processed your medical document "${file.name}". I can now use this information to provide more personalized responses to your health questions.`
+      }]);
+
+      // Reset form
+      setTimeout(() => {
+        setUploadingDocument(false);
+        setUploadProgress(null);
+        setShowDocumentUpload(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 2000);
+
+    } catch (error) {
+      console.error('Document upload failed:', error);
+      alert(`Failed to upload document: ${error.message}`);
+      setUploadingDocument(false);
+      setUploadProgress(null);
+    }
+  };
+
+  // Handle file selection
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
   const {
     transcript,
     browserSupportsSpeechRecognition,
@@ -474,18 +570,30 @@ const ChatBot = () => {
   // }, []);
   const getResponse = async (message) => {
     try {
-      // Use custom Sakhi AI instead of backend API
+      // Use custom Sakhi AI with RAG capabilities
       const aiResponse = await sakhiAI.generateResponse(message, {
         timestamp: new Date().toISOString(),
-        userId: localStorage.getItem('sessionId')
+        userId: userId
       });
 
       console.log("Sakhi AI Response:", aiResponse);
-      setText(aiResponse);
+
+      // Extract text from response (handle both RAG and regular responses)
+      const responseText = aiResponse.text || aiResponse;
+      setText(responseText);
+
+      // Create chat message
+      const chatMessage = {
+        role: "Sakhi",
+        msg: responseText,
+        sources: aiResponse.sources || [],
+        ragEnabled: aiResponse.ragEnabled || false
+      };
+
       setChats([
         ...chats,
         { role: "User", msg: message },
-        { role: "Sakhi", msg: aiResponse },
+        chatMessage,
       ]);
       setInputText("");
       setSpeak(true);
@@ -573,14 +681,120 @@ const ChatBot = () => {
                 zIndex: 1000,
               }}
             >
-              <h1 className="text-center text-xl font-semibold mb-2">
-                Chat Window
-              </h1>
-              {chats?.map((chat, index) => (
-                <h1 key={index} className="text-lg">
-                  <span className="font-semibold">{chat.role}</span> :{" "}
-                  {chat.msg}
+              <div className="flex justify-between items-center mb-2">
+                <h1 className="text-center text-xl font-semibold">
+                  Chat Window
                 </h1>
+                <div className="flex items-center gap-2">
+                  {/* RAG Connection Status */}
+                  <div className={`px-2 py-1 rounded text-xs flex items-center gap-1 ${
+                    ragConnected
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      ragConnected ? 'bg-green-500' : 'bg-red-500'
+                    }`}></div>
+                    RAG {ragConnected ? 'Connected' : 'Offline'}
+                  </div>
+
+                  {ragEnabled && (
+                    <button
+                      onClick={() => setShowDocumentUpload(!showDocumentUpload)}
+                      className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 transition-colors"
+                      title="Upload medical documents"
+                    >
+                      📄 Upload
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Document Upload Section */}
+              {ragEnabled && showDocumentUpload && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="text-sm font-semibold mb-2 text-blue-800">
+                    Upload Medical Documents
+                  </h3>
+                  <p className="text-xs text-blue-600 mb-3">
+                    Upload PDF medical reports for personalized responses
+                  </p>
+
+                  {documents.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs font-medium text-blue-700 mb-1">
+                        Your Documents ({documents.length}):
+                      </p>
+                      <div className="space-y-1">
+                        {documents.slice(0, 3).map((doc, idx) => (
+                          <div key={idx} className="text-xs bg-white p-2 rounded border border-blue-200">
+                            <span className="font-medium">{doc.title || doc.filename}</span>
+                            <span className="text-gray-500 ml-1">
+                              ({doc.chunks?.length || 0} pages)
+                            </span>
+                          </div>
+                        ))}
+                        {documents.length > 3 && (
+                          <p className="text-xs text-gray-500 italic">
+                            ... and {documents.length - 3} more documents
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={handleDocumentUpload}
+                    className="hidden"
+                    disabled={uploadingDocument}
+                  />
+
+                  <button
+                    onClick={handleFileSelect}
+                    disabled={uploadingDocument}
+                    className="w-full bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 disabled:bg-blue-300 transition-colors"
+                  >
+                    {uploadingDocument ? 'Uploading...' : 'Choose PDF File'}
+                  </button>
+
+                  {uploadProgress !== null && (
+                    <div className="mt-2">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1 text-center">
+                        {uploadProgress < 100 ? 'Processing...' : 'Complete!'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {chats?.map((chat, index) => (
+                <div key={index} className="mb-3">
+                  <h1 className="text-lg">
+                    <span className="font-semibold">{chat.role}</span> :{" "}
+                    {chat.msg}
+                  </h1>
+                  {chat.ragEnabled && (
+                    <div className="ml-2 mt-1">
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                        📚 Using your medical context
+                      </span>
+                      {chat.sources && chat.sources.length > 0 && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Sources: {chat.sources.map(s => s.title).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
             <div className="mt-4 bg-white flex flex-row p-2 rounded">
@@ -590,23 +804,42 @@ const ChatBot = () => {
                 className="w-full outline-none"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && inputText.trim()) {
+                    getResponse(inputText);
+                  }
+                }}
               />
               <button
                 onClick={() => {
-                  console.log("Hello");
-                  getResponse(inputText);
+                  if (inputText.trim()) {
+                    getResponse(inputText);
+                  }
                 }}
+                disabled={!inputText.trim()}
+                className="ml-2 disabled:opacity-50"
               >
-                <AiOutlineSend className="ml-4" size={25} />
+                <AiOutlineSend size={25} />
               </button>
             </div>
           </div>
-          <button
-            onClick={() => setChat((prev) => !prev)}
-            className="bg-teal-200 p-2 rounded text-lg w-[100px] mb-6"
-          >
-            Chat
-          </button>
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setChat((prev) => !prev)}
+              className="bg-teal-200 p-2 rounded text-lg hover:bg-teal-300 transition-colors"
+            >
+              Chat
+            </button>
+            {ragEnabled && (
+              <button
+                onClick={() => setShowDocumentUpload(!showDocumentUpload)}
+                className="bg-blue-200 p-2 rounded text-lg hover:bg-blue-300 transition-colors"
+                title="Upload medical documents"
+              >
+                📄 Documents
+              </button>
+            )}
+          </div>
           <div className="flex flex-col">
             <p className="text-md text-white mb-2">{transcript || (browserSupportsSpeechRecognition ? "Click 'Start' to begin speaking..." : "Speech recognition not supported in this browser")}</p>
             <div className="flex flex-row items-center">

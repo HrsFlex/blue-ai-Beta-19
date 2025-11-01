@@ -6,7 +6,15 @@ const bodyParser = require('body-parser');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const multer = require('multer');
 require('dotenv').config();
+
+// Import RAG services and configuration
+const { config, validateConfig, logConfig } = require('./config');
+const PDFProcessor = require('./pdfProcessor');
+const MemoryVectorStore = require('./memoryVectorStore');
+const GeminiService = require('./geminiService');
+const ElevenLabsService = require('./elevenLabsService');
 
 const app = express();
 const server = http.createServer(app);
@@ -21,10 +29,40 @@ const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 const emotionAnalytics = new Map(); // userId -> emotion data
 const emotionHistory = []; // Global emotion history
 
+// RAG Services Storage
+const ragServices = {};
+let isRAGInitialized = false;
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: config.CORS_ORIGINS,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key']
+}));
+
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// File upload middleware
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: config.MAX_FILE_SIZE
+  },
+  fileFilter: (req, file, cb) => {
+    if (config.ALLOWED_FILE_TYPES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} not allowed`), false);
+    }
+  }
+});
+
+// Serve static files
+app.use(express.static('public'));
+app.use('/audio', express.static(path.join(__dirname, 'public', 'audio')));
 
 // ML Service Helper Functions
 async function callMLService(endpoint, data) {
@@ -93,14 +131,334 @@ function trackEmotion(userId, emotionData) {
   }
 }
 
+// RAG Services Initialization Function
+async function initializeRAGServices() {
+  try {
+    console.log('🚀 Initializing RAG Services...');
+
+    // Validate configuration
+    validateConfig();
+    logConfig();
+
+    // Initialize services
+    console.log('\n📚 Initializing RAG services...');
+
+    // PDF Processor
+    ragServices.pdfProcessor = new PDFProcessor(config);
+    console.log('✅ PDF Processor initialized');
+
+    // Vector Store
+    ragServices.vectorStore = new MemoryVectorStore(config);
+    await ragServices.vectorStore.initialize();
+
+    // Gemini AI Service
+    ragServices.gemini = new GeminiService(config);
+    await ragServices.gemini.initialize();
+
+    // ElevenLabs Service
+    ragServices.elevenLabs = new ElevenLabsService(config);
+    await ragServices.elevenLabs.initialize();
+
+    isRAGInitialized = true;
+    console.log('\n🎉 RAG Services initialized successfully!');
+
+  } catch (error) {
+    console.error('❌ Failed to initialize RAG Services:', error);
+    isRAGInitialized = false;
+  }
+}
+
 // Create audio directory if it doesn't exist
 const audioDir = path.join(__dirname, 'public', 'audio');
 if (!fs.existsSync(audioDir)) {
   fs.mkdirSync(audioDir, { recursive: true });
 }
 
-// Serve static files from public directory
-app.use(express.static('public'));
+// RAG API Routes
+
+// Health check for RAG services
+app.get('/api/rag/health', async (req, res) => {
+  try {
+    if (!isRAGInitialized) {
+      return res.json({
+        success: false,
+        status: 'uninitialized',
+        message: 'RAG services not initialized'
+      });
+    }
+
+    const health = {
+      vectorStore: await ragServices.vectorStore.healthCheck(),
+      gemini: await ragServices.gemini.healthCheck(),
+      elevenLabs: await ragServices.elevenLabs.healthCheck()
+    };
+
+    const overallStatus = Object.values(health).every(service => service.status === 'healthy') ? 'healthy' : 'degraded';
+
+    res.json({
+      success: true,
+      overall: overallStatus,
+      services: health,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    res.json({
+      success: false,
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Document upload endpoint
+app.post('/api/documents/upload', upload.single('pdf'), async (req, res) => {
+  try {
+    if (!isRAGInitialized) {
+      return res.status(503).json({
+        success: false,
+        message: 'RAG services not initialized'
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    const { userId = 'default' } = req.body;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    console.log(`📄 Processing document upload for user: ${userId}`);
+
+    // Process PDF
+    const document = await ragServices.pdfProcessor.processPDF(req.file, userId);
+
+    // Add to vector store
+    const chunkIds = await ragServices.vectorStore.addDocument(document);
+
+    res.json({
+      success: true,
+      message: 'Document uploaded and processed successfully',
+      document: {
+        id: document.id,
+        filename: document.filename,
+        pageCount: document.pageCount,
+        totalChunks: document.totalChunks,
+        uploadDate: document.uploadDate,
+        metadata: document.metadata
+      },
+      chunkIds,
+      processingStats: {
+        fileSize: document.fileSize,
+        textLength: document.chunks.reduce((sum, chunk) => sum + chunk.length, 0),
+        processingTime: Date.now() - new Date(document.uploadDate).getTime()
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Document upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Document upload failed',
+      error: error.message
+    });
+  }
+});
+
+// Get user documents
+app.get('/api/documents', async (req, res) => {
+  try {
+    if (!isRAGInitialized) {
+      return res.status(503).json({
+        success: false,
+        message: 'RAG services not initialized'
+      });
+    }
+
+    const { userId = 'default', limit = 50 } = req.query;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    const documents = await ragServices.vectorStore.getUserDocuments(userId, parseInt(limit));
+
+    res.json({
+      success: true,
+      documents,
+      count: documents.length,
+      userId
+    });
+
+  } catch (error) {
+    console.error('❌ Error fetching user documents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch documents',
+      error: error.message
+    });
+  }
+});
+
+// Delete document
+app.delete('/api/documents/:documentId', async (req, res) => {
+  try {
+    if (!isRAGInitialized) {
+      return res.status(503).json({
+        success: false,
+        message: 'RAG services not initialized'
+      });
+    }
+
+    const { documentId } = req.params;
+    const { userId = 'default' } = req.query;
+
+    if (!documentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Document ID is required'
+      });
+    }
+
+    const success = await ragServices.vectorStore.deleteDocument(documentId, userId);
+
+    if (success) {
+      res.json({
+        success: true,
+        message: 'Document deleted successfully'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Document not found'
+      });
+    }
+
+  } catch (error) {
+    console.error('❌ Error deleting document:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete document',
+      error: error.message
+    });
+  }
+});
+
+// RAG chat endpoint
+app.post('/api/chat', async (req, res) => {
+  try {
+    if (!isRAGInitialized) {
+      return res.status(503).json({
+        success: false,
+        message: 'RAG services not initialized'
+      });
+    }
+
+    const { query, userId = 'default', language = 'en', options = {} } = req.body;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: 'Query is required'
+      });
+    }
+
+    console.log(`💬 Processing RAG chat query for user ${userId}: "${query.substring(0, 100)}..."`);
+
+    // Retrieve context
+    const contextData = await ragServices.vectorStore.retrieveContext(query, userId, {
+      topK: config.TOP_K_DOCUMENTS,
+      threshold: config.SIMILARITY_THRESHOLD
+    });
+
+    // Generate response
+    const response = await ragServices.gemini.generateRAGResponse(query, contextData, {
+      language,
+      includeMedicalAdvice: true,
+      includeSources: true,
+      ...options
+    });
+
+    res.json({
+      success: true,
+      response: response.text,
+      sources: response.citations,
+      contextUsed: response.sourcesUsed > 0,
+      metadata: {
+        query,
+        language,
+        model: response.model,
+        timestamp: response.timestamp,
+        contextLength: response.contextLength,
+        sourcesUsed: response.sourcesUsed,
+        medicalData: response.medicalData
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ RAG chat query error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process chat query',
+      error: error.message
+    });
+  }
+});
+
+// Voice synthesis endpoint
+app.post('/api/voice/synthesize', async (req, res) => {
+  try {
+    if (!isRAGInitialized) {
+      return res.status(503).json({
+        success: false,
+        message: 'RAG services not initialized'
+      });
+    }
+
+    const { text, language = 'auto', options = {} } = req.body;
+
+    if (!text) {
+      return res.status(400).json({
+        success: false,
+        message: 'Text is required'
+      });
+    }
+
+    const result = await ragServices.elevenLabs.synthesizeSpeech(text, {
+      language,
+      ...options
+    });
+
+    res.json({
+      success: true,
+      audioUrl: result.audioUrl,
+      duration: result.duration,
+      language: result.language,
+      text: result.text,
+      timestamp: result.timestamp
+    });
+
+  } catch (error) {
+    console.error('❌ Speech synthesis error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Speech synthesis failed',
+      error: error.message
+    });
+  }
+});
 
 // Serve audio files with proper MIME type
 app.get('/audio/:filename', (req, res) => {
@@ -373,7 +731,7 @@ app.post('/auth/logout', (req, res) => {
   }
 });
 
-// Enhanced Chatbot API with Emotion Detection
+// Enhanced Chatbot API with RAG and Emotion Detection
 app.post('/chatbot', async (req, res) => {
   try {
     const { message, userId } = req.body;
@@ -385,25 +743,91 @@ app.post('/chatbot', async (req, res) => {
       });
     }
 
-    // Call ML service for emotion analysis and response generation
-    const mlResponse = await callMLService('/api/v/chat', {
-      prompt: message,
-      user_id: userId || 'anonymous'
-    });
+    let response;
+
+    // Try RAG services first if available
+    if (isRAGInitialized) {
+      try {
+        console.log(`💬 Processing RAG chatbot query for user ${userId}: "${message.substring(0, 100)}..."`);
+
+        // Retrieve context from RAG
+        const contextData = await ragServices.vectorStore.retrieveContext(message, userId || 'default', {
+          topK: config.TOP_K_DOCUMENTS,
+          threshold: config.SIMILARITY_THRESHOLD
+        });
+
+        // Generate RAG response
+        const ragResponse = await ragServices.gemini.generateRAGResponse(message, contextData, {
+          language: 'auto',
+          includeMedicalAdvice: true,
+          includeSources: true
+        });
+
+        response = {
+          answer: ragResponse.text,
+          emotion: 'caring', // Default emotion for RAG responses
+          confidence: 0.8,
+          intent: 'medical_query',
+          multimodal: false,
+          context: ragResponse.citations,
+          timestamp: ragResponse.timestamp,
+          sourcesUsed: ragResponse.sourcesUsed,
+          ragEnabled: true
+        };
+
+      } catch (ragError) {
+        console.warn('RAG processing failed, falling back to ML service:', ragError.message);
+
+        // Fallback to ML service
+        const mlResponse = await callMLService('/api/v/chat', {
+          prompt: message,
+          user_id: userId || 'anonymous'
+        });
+
+        response = {
+          answer: mlResponse.response,
+          emotion: mlResponse.emotion,
+          confidence: mlResponse.confidence,
+          intent: mlResponse.intent,
+          multimodal: mlResponse.multimodal,
+          context: mlResponse.context,
+          timestamp: mlResponse.timestamp,
+          ragEnabled: false
+        };
+      }
+    } else {
+      // Use ML service if RAG not initialized
+      const mlResponse = await callMLService('/api/v/chat', {
+        prompt: message,
+        user_id: userId || 'anonymous'
+      });
+
+      response = {
+        answer: mlResponse.response,
+        emotion: mlResponse.emotion,
+        confidence: mlResponse.confidence,
+        intent: mlResponse.intent,
+        multimodal: mlResponse.multimodal,
+        context: mlResponse.context,
+        timestamp: mlResponse.timestamp,
+        ragEnabled: false
+      };
+    }
 
     // Track emotion analytics
     if (userId) {
-      trackEmotion(userId, mlResponse);
+      trackEmotion(userId, response);
     }
 
     // Broadcast emotion update via WebSocket
-    if (userId && mlResponse.emotion && mlResponse.emotion !== 'uncertain') {
+    if (userId && response.emotion && response.emotion !== 'uncertain') {
       const emotionUpdate = {
         type: 'emotion_update',
         userId,
-        emotion: mlResponse.emotion,
-        confidence: mlResponse.confidence,
-        timestamp: new Date().toISOString()
+        emotion: response.emotion,
+        confidence: response.confidence,
+        timestamp: new Date().toISOString(),
+        ragEnabled: response.ragEnabled || false
       };
 
       wss.clients.forEach(client => {
@@ -415,13 +839,7 @@ app.post('/chatbot', async (req, res) => {
 
     res.json({
       success: true,
-      answer: mlResponse.response,
-      emotion: mlResponse.emotion,
-      confidence: mlResponse.confidence,
-      intent: mlResponse.intent,
-      multimodal: mlResponse.multimodal,
-      context: mlResponse.context,
-      timestamp: mlResponse.timestamp
+      ...response
     });
 
   } catch (error) {
@@ -429,7 +847,8 @@ app.post('/chatbot', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Chatbot service unavailable',
-      answer: getFallbackResponse(req.body?.message || 'I understand you\'re reaching out. I\'m here to support you.')
+      answer: getFallbackResponse(req.body?.message || 'I understand you\'re reaching out. I\'m here to support you.'),
+      ragEnabled: false
     });
   }
 });
@@ -1126,9 +1545,24 @@ app.use((req, res) => {
   });
 });
 
-// Start server
-server.listen(PORT, () => {
-  console.log(`🚀 Sakhi Backend Server running on port ${PORT}`);
-  console.log(`📡 WebSocket server ready on ws://localhost:${PORT}`);
-  console.log(`🔗 API available at http://localhost:${PORT}/api`);
-});
+// Start server with RAG initialization
+async function startServer() {
+  try {
+    // Initialize RAG services first
+    await initializeRAGServices();
+
+    server.listen(PORT, () => {
+      console.log(`🚀 Sakhi Unified Backend Server running on port ${PORT}`);
+      console.log(`📡 WebSocket server ready on ws://localhost:${PORT}`);
+      console.log(`🔗 API available at http://localhost:${PORT}/api`);
+      console.log(`🤖 RAG Services: ${isRAGInitialized ? '✅ Initialized' : '❌ Failed'}`);
+      console.log(`📖 RAG Health Check: http://localhost:${PORT}/api/rag/health`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer();

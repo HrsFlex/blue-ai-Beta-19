@@ -19,6 +19,20 @@ import Home from "./pages/Home/Home";
 import MentalWellness from "./pages/MentalWellness/MentalWellness";
 import WellnessRecommendations from "./pages/WellnessRecommendations/WellnessRecommendations";
 
+// RAG Backend Connection
+console.log('🤖 Connecting to RAG Backend Engine...');
+
+// Test connection to RAG backend
+fetch('http://localhost:5000/api/rag/health')
+  .then(response => response.json())
+  .then(data => {
+    console.log('✅ RAG Backend connected:', data.overall);
+    console.log('🚀 RAG Services Status:', data.services);
+  })
+  .catch(error => {
+    console.log('⚠️ RAG Backend not available - running in offline mode');
+  });
+
 // Auth check component - returns outlet or redirect based on auth state
 const RequireAuth = () => {
   const sessionId = localStorage.getItem("sessionId");
