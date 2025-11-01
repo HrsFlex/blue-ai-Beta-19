@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './MentalWellness.css';
 // import { GoogleGenAI } from "@google/genai"; // Available for future use
+import Navbar from '../../components/Navbar/Navbar';
 import VideoRecommendation from '../../components/VideoRecommendation/VideoRecommendation';
 import MoodTracker from '../../components/MoodTracker/MoodTracker';
 import DoctorReferral from '../../components/DoctorReferral/DoctorReferral';
 import Meditation from '../../components/Meditation/Meditation';
 
 const MentalWellness = () => {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -579,7 +582,10 @@ const MentalWellness = () => {
   };
 
   return (
-    <div className="mental-wellness-container">
+    <div className="flex">
+      <Navbar />
+      <div className="flex-1 overflow-y-auto bg-gray-50">
+        <div className="mental-wellness-container">
       <div className="chat-header">
         <div className="header-content">
           <div className="avatar-container">
@@ -670,6 +676,8 @@ const MentalWellness = () => {
           </button>
         </div>
       </form>
+        </div>
+      </div>
     </div>
   );
 };

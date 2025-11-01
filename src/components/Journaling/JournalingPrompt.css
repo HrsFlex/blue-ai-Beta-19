@@ -1,0 +1,464 @@
+/* Clean Journaling Component */
+.journal-layout {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.back-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.2s ease;
+}
+
+.back-button:hover {
+  color: #374151;
+}
+
+/* Start Screen */
+.journal-start {
+  text-align: center;
+}
+
+.journal-header {
+  margin-bottom: 48px;
+}
+
+.journal-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+}
+
+.journal-description {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.prompt-display {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 32px;
+  margin-bottom: 32px;
+  border: 1px solid #e5e7eb;
+}
+
+.prompt-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.prompt-text {
+  font-size: 18px;
+  color: #374151;
+  margin: 0;
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Mood Selection */
+.mood-section {
+  margin-bottom: 32px;
+}
+
+.mood-question {
+  display: block;
+  font-size: 16px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.mood-button {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.mood-button:hover {
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.mood-button.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.mood-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.mood-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.mood-button.selected .mood-label {
+  color: #3b82f6;
+}
+
+/* Start Button */
+.start-button {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  display: block;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.start-button.ready:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.start-button.disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Writing Screen */
+.journal-write {
+  position: relative;
+}
+
+.write-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.timer-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f3f4f6;
+  padding: 8px 16px;
+  border-radius: 8px;
+}
+
+.timer-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.timer-button:hover {
+  background: #e5e7eb;
+}
+
+.cancel-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.cancel-button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.write-prompt {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+}
+
+.prompt-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.write-prompt p {
+  font-size: 14px;
+  color: #374151;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.write-area {
+  width: 100%;
+  min-height: 300px;
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+  font-family: inherit;
+  resize: vertical;
+  background: white;
+  transition: border-color 0.2s ease;
+}
+
+.write-area:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.write-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+}
+
+.word-counter {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.save-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-button.ready:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.save-button.disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Recent Entries */
+.recent-entries {
+  margin-top: 48px;
+  padding-top: 32px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.recent-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.toggle-button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.entries-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.entry-preview {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.entry-preview:hover {
+  border-color: #d1d5db;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.entry-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.entry-mood {
+  font-size: 18px;
+}
+
+.entry-date {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.entry-excerpt {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 12px 0;
+}
+
+.delete-entry {
+  background: none;
+  border: none;
+  color: #ef4444;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.delete-entry:hover {
+  background: #fef2f2;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .journal-layout {
+    padding: 16px;
+  }
+
+  .journal-title {
+    font-size: 24px;
+  }
+
+  .prompt-display {
+    padding: 24px;
+  }
+
+  .prompt-text {
+    font-size: 16px;
+  }
+
+  .mood-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .mood-button {
+    padding: 12px 8px;
+  }
+
+  .write-area {
+    min-height: 200px;
+    font-size: 16px;
+  }
+
+  .write-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .timer-display {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .journal-layout {
+    padding: 12px;
+  }
+
+  .mood-grid {
+    grid-template-columns: 1fr;
+    max-width: 200px;
+  }
+
+  .prompt-display {
+    padding: 20px;
+  }
+
+  .journal-header {
+    margin-bottom: 32px;
+  }
+}
+

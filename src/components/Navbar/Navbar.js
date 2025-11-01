@@ -11,6 +11,7 @@ import { BiSolidPhoneCall } from "react-icons/bi";
 import { ToastContainer, toast } from "react-toastify";
 import { FaAward } from "react-icons/fa";
 import { MdPsychology } from "react-icons/md";
+import { MdSpa } from "react-icons/md";
 import "react-toastify/dist/ReactToastify.css";
 import logo from "../../assets/logo.png"
 const navigations = [
@@ -28,18 +29,24 @@ const navigations = [
   },
   {
     id: 3,
+    name: "Personalized Wellness",
+    path: "/wellness-recommendations",
+    Icon: ({ color }) => <MdSpa size={25} color={color} />,
+  },
+  {
+    id: 4,
     name: "Search Doctors",
     path: "/search-doctors",
     Icon: ({ color }) => <FaUserDoctor size={25} color={color} />,
   },
   {
-    id: 4,
+    id: 5,
     name: "AI Avatar Chat",
     path: "/",
     Icon: ({ color }) => <FiHome size={25} color={color} />,
   },
   {
-    id: 5,
+    id: 6,
     path: "/rewards",
     name: "Rewards",
     Icon: ({ color }) => <FaAward size={25} color={color} />,
