@@ -16,63 +16,64 @@ import logo from "../../assets/logo.png"
 const navigations = [
   {
     id: 1,
-    name: "Home",
-    path: "/",
-    Icon: ({ color }) => <FiHome size={25} color={color} />,
-  },
-  {
-    id: 2,
     name: "Health Dashboard",
     path: "/health-dashboard",
     Icon: ({ color }) => <IoHeartCircle size={25} color={color} />,
   },
   {
-    id: 3,
-    name: "Plans",
-    path: "/plans",
-    Icon: ({ color }) => <SiPlanet size={25} color={color} />,
-  },
-  {
-    id: 4,
-    name: "Reports",
-    path: "/reports",
-    Icon: ({ color }) => <BiSolidReport size={25} color={color} />,
-  },
-  {
-    id: 5,
-    name: "Search Doctors",
-    path: "/search-doctors",
-    Icon: ({ color }) => <FaUserDoctor size={25} color={color} />,
-  },
-  {
-    id: 6,
-    path: "/diet-plan",
-    name: "Diet Plan",
-    Icon: ({ color }) => <MdOutlineFoodBank size={25} color={color} />,
-  },
-  {
-    id: 7,
-    path: "/chat",
-    name: "Support Group",
-    Icon: ({ color }) => <BsFillChatLeftTextFill size={25} color={color} />,
-  },
-  {
-    id: 9,
-    path: "/rewards",
-    name: "Rewards",
-    Icon: ({ color }) => <FaAward size={25} color={color} />,
-  },
-  {
-    id: 10,
+    id: 2,
     path: "/mental-wellness",
     name: "Mental Wellness",
     Icon: ({ color }) => <MdPsychology size={25} color={color} />,
   },
   {
-    id: 8,
-    name: "Emergency Call",
-    Icon: ({ color }) => <BiSolidPhoneCall size={25} color={color} />,
+    id: 3,
+    name: "Search Doctors",
+    path: "/search-doctors",
+    Icon: ({ color }) => <FaUserDoctor size={25} color={color} />,
   },
+  {
+    id: 4,
+    name: "AI Avatar Chat",
+    path: "/",
+    Icon: ({ color }) => <FiHome size={25} color={color} />,
+  },
+  {
+    id: 5,
+    path: "/rewards",
+    name: "Rewards",
+    Icon: ({ color }) => <FaAward size={25} color={color} />,
+  },
+  // Commented out navigation items - can be restored later if needed
+  // {
+  //   id: 3,
+  //   name: "Plans",
+  //   path: "/plans",
+  //   Icon: ({ color }) => <SiPlanet size={25} color={color} />,
+  // },
+  // {
+  //   id: 4,
+  //   name: "Reports",
+  //   path: "/reports",
+  //   Icon: ({ color }) => <BiSolidReport size={25} color={color} />,
+  // },
+  // {
+  //   id: 6,
+  //   path: "/diet-plan",
+  //   name: "Diet Plan",
+  //   Icon: ({ color }) => <MdOutlineFoodBank size={25} color={color} />,
+  // },
+  // {
+  //   id: 7,
+  //   path: "/chat",
+  //   name: "Support Group",
+  //   Icon: ({ color }) => <BsFillChatLeftTextFill size={25} color={color} />,
+  // },
+  // {
+  //   id: 8,
+  //   name: "Emergency Call",
+  //   Icon: ({ color }) => <BiSolidPhoneCall size={25} color={color} />,
+  // },
 ];
 const Navbar = () => {
   const location = useLocation();

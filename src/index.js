@@ -32,7 +32,7 @@ const RequireAuth = () => {
 
 // Check if user is logged in and set the initial path
 const sessionId = localStorage.getItem('sessionId');
-const initialPath = sessionId ? '/' : '/login';
+const initialPath = sessionId ? '/health-dashboard' : '/login';
 
 // Set the initial URL before rendering the app
 if (window.location.pathname === '/') {
