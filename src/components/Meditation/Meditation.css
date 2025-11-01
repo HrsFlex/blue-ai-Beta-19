@@ -1,0 +1,240 @@
+.meditation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.meditation-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  color: white;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.close-button {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 24px;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.meditation-header h2 {
+  margin: 0 0 10px 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.timer {
+  font-size: 48px;
+  font-weight: bold;
+  margin: 10px 0;
+  font-family: 'Courier New', monospace;
+}
+
+.breath-counter {
+  font-size: 18px;
+  opacity: 0.9;
+  margin: 5px 0 30px 0;
+}
+
+.breathing-circle {
+  width: 200px;
+  height: 200px;
+  border: 4px solid #666;
+  border-radius: 50%;
+  margin: 30px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: border-color 0.5s ease;
+}
+
+.breath-indicator {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 4s ease-in-out, transform 4s ease-in-out;
+  background-color: #666;
+}
+
+.breath-indicator.inhale {
+  animation: breatheIn 4s ease-in-out;
+}
+
+.breath-indicator.exhale {
+  animation: breatheOut 6s ease-in-out;
+}
+
+@keyframes breatheIn {
+  0% { transform: scale(0.7); }
+  100% { transform: scale(1.3); }
+}
+
+@keyframes breatheOut {
+  0% { transform: scale(1.3); }
+  100% { transform: scale(0.7); }
+}
+
+.countdown-number {
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.meditation-instructions {
+  margin: 30px 0;
+}
+
+.meditation-instructions h3 {
+  margin: 0 0 15px 0;
+  font-size: 24px;
+  font-weight: 600;
+  transition: color 0.5s ease;
+}
+
+.meditation-instructions p {
+  margin: 10px 0;
+  font-size: 16px;
+  line-height: 1.5;
+  opacity: 0.95;
+}
+
+.meditation-controls {
+  margin-top: 30px;
+}
+
+.pause-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.pause-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.completion-section {
+  margin-top: 30px;
+}
+
+.completion-section h3 {
+  margin: 0 0 15px 0;
+  font-size: 26px;
+  color: #FFD700;
+}
+
+.completion-section p {
+  margin: 10px 0;
+  font-size: 18px;
+  line-height: 1.5;
+}
+
+.completion-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 25px;
+}
+
+.complete-button {
+  background: #4CAF50;
+  border: none;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.complete-button:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+}
+
+.repeat-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
+  color: white;
+  padding: 15px 25px;
+  border-radius: 25px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.repeat-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .meditation-container {
+    padding: 30px 20px;
+    margin: 20px;
+  }
+
+  .breathing-circle {
+    width: 150px;
+    height: 150px;
+  }
+
+  .breath-indicator {
+    width: 90px;
+    height: 90px;
+  }
+
+  .countdown-number {
+    font-size: 36px;
+  }
+
+  .timer {
+    font-size: 36px;
+  }
+
+  .completion-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
