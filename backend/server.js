@@ -119,13 +119,56 @@ let rewardIdCounter = 1;
 
 // Initialize mock data
 function initializeMockData() {
-  // Mock rewards
+  // Mock rewards - coin-based system with products
   rewards.push(
-    { id: rewardIdCounter++, name: "Meditation Master", description: "Complete 7 days of meditation", points: 100, icon: "🧘" },
-    { id: rewardIdCounter++, name: "Wellness Warrior", description: "Maintain mood score above 7 for a week", points: 150, icon: "⚔️" },
-    { id: rewardIdCounter++, name: "Healthy Habits Hero", description: "Log meals for 30 days straight", points: 200, icon: "🥗" },
-    { id: rewardIdCounter++, name: "Mindfulness Mentor", description: "Complete all mindfulness exercises", points: 250, icon: "🧠" },
-    { id: rewardIdCounter++, name: "Stress Slayer", description: "Reduce stress levels by 50%", points: 300, icon: "🗡️" }
+    {
+      id: rewardIdCounter++,
+      image: "https://store.storeimages.cdn-apple.com/4668/as-images.apple.com/is/iphone-14-pro-finish-select-202209-6-7inch_AV1?wid=940&hei=1112&fmt=png-alpha&.v=1663703840578",
+      coins: 400,
+      title: "Apple iPhone 14",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1546868871-7041f2a55e12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGFwcGxlJTIwd2F0Y2h8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
+      coins: 120,
+      title: "Apple Watch Series 8",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1485965120184-e220f721d03e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8YmljeWNsZXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
+      coins: 200,
+      title: "Premium Road Bike",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8d2F0ZXIlMjBib3R0bGV8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
+      coins: 25,
+      title: "Insulated Water Bottle",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1575537302964-96cd47c06b1b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Zml0Yml0fGVufDB8fDB8fHww&auto=format&fit=crop&w=800&q=60",
+      coins: 80,
+      title: "Fitbit Fitness Tracker",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1622979135225-d2ba269cf1ac?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTB8fGhlYWRwaG9uZXN8ZW58MHx8MHx8fDA%3D&auto=format&fit=crop&w=800&q=60",
+      coins: 100,
+      title: "Noise-Cancelling Headphones",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1534258936925-c58bed479fcb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8Z3ltJTIwbWVtYmVyc2hpcHxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
+      coins: 150,
+      title: "3-Month Gym Membership",
+    },
+    {
+      id: rewardIdCounter++,
+      image: "https://images.unsplash.com/photo-1616279969856-759f316a5ac1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8M3x8c21hcnQlMjBzY2FsZXxlbnwwfHwwfHx8MA%3D%3D&auto=format&fit=crop&w=800&q=60",
+      coins: 60,
+      title: "Smart Body Scale",
+    }
   );
 }
 
@@ -473,15 +516,16 @@ app.post('/rewards', (req, res) => {
       });
     }
 
-    // Get user's earned rewards
-    const earnedRewards = userRewards.filter(r => r.userId === user.id);
-    const totalPoints = earnedRewards.reduce((sum, r) => sum + r.points, 0);
+    // Get user's coin balance and redeemed rewards
+    const userCoinBalance = user.coinBalance || 500; // Default 500 coins for testing
+    const redeemedRewards = userRewards.filter(r => r.userId === user.id);
+    const totalSpent = redeemedRewards.reduce((sum, r) => sum + r.coins, 0);
 
     res.json({
       success: true,
-      rewards: earnedRewards,
-      totalPoints,
-      availableRewards: rewards,
+      rewards: rewards, // All available rewards
+      totalPoints: userCoinBalance, // Current coin balance
+      availableRewards: rewards.filter(r => r.coins <= userCoinBalance),
       message: "User rewards retrieved successfully"
     });
   } catch (error) {
@@ -522,18 +566,32 @@ app.post('/redeem-reward', (req, res) => {
       });
     }
 
+    // Check if user has enough coins
+    const userCoinBalance = user.coinBalance || 500;
+    if (userCoinBalance < reward.coins) {
+      return res.status(400).json({
+        success: false,
+        message: 'Insufficient coins'
+      });
+    }
+
+    // Deduct coins from user balance
+    user.coinBalance = userCoinBalance - reward.coins;
+
     // Add to user rewards
     userRewards.push({
       id: userRewards.length + 1,
       userId: user.id,
       rewardId: reward.id,
       redeemedAt: new Date().toISOString(),
-      points: reward.points
+      coins: reward.coins,
+      originalPrice: reward.coins
     });
 
     res.json({
       success: true,
       reward,
+      newBalance: user.coinBalance,
       message: "Reward redeemed successfully"
     });
   } catch (error) {
@@ -541,6 +599,83 @@ app.post('/redeem-reward', (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Unable to redeem reward'
+    });
+  }
+});
+
+// Add coins endpoint for testing
+app.post('/add-coins', (req, res) => {
+  try {
+    const { email, amount } = req.body;
+    let user = users.find(u => u.email === email);
+
+    if (!user) {
+      // Create a new user if they don't exist (for testing purposes)
+      user = {
+        id: userIdCounter++,
+        email: email,
+        name: email.split('@')[0], // Use name from email
+        password: 'password123', // Default password for testing
+        address: 'Test Address',
+        age: 25,
+        height: 165,
+        sex: 'female',
+        weight: 60,
+        condition: 'general wellness',
+        history: '',
+        emergency1: '',
+        emergency2: '',
+        coinBalance: 0,
+        createdAt: new Date().toISOString()
+      };
+      users.push(user);
+      console.log(`Created new user for email: ${email}`);
+    }
+
+    // Add coins to user balance
+    if (!user.coinBalance) {
+      user.coinBalance = 0;
+    }
+    user.coinBalance += amount;
+
+    res.json({
+      success: true,
+      newBalance: user.coinBalance,
+      amountAdded: amount,
+      message: `Successfully added ${amount} coins`
+    });
+  } catch (error) {
+    console.error('Add coins error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to add coins'
+    });
+  }
+});
+
+// Get user coin balance
+app.post('/get-balance', (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = users.find(u => u.email === email);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      balance: user.coinBalance || 500,
+      message: "Balance retrieved successfully"
+    });
+  } catch (error) {
+    console.error('Get balance error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to retrieve balance'
     });
   }
 });

@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import Navbar from "../../components/Navbar/Navbar";
+import { AnimatedCard, FadeIn, AnimatedProgress } from "../../components/Animations";
+import { useReducedMotion } from "../../utils/animations/useAnimationHooks";
 
 const set = [
   {
@@ -139,6 +142,8 @@ const answers = [
 const Quiz = () => {
   const [ans, setAns] = useState(answers);
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
+
   const submit = () => {
     if (ans.some((answer) => answer.answer === "")) {
       alert("Please answer all the questions");
@@ -154,53 +159,89 @@ const Quiz = () => {
         navigate("/reports");
       });
   };
+
+  const progressPercentage = (ans.filter(answer => answer.answer !== "").length / ans.length) * 100;
+
   return (
-    <div className="px-[16vw] bg-sky-400">
-      <div className="px-[7vw] py-12 bg-white">
-        <h1 className="text-6xl font-semibold">CBT</h1>
-        <h1 className="py-4 text-xl">
-          Answer the following questions based on how much were you bothered by
-          these for the past week:
-        </h1>
-        {set.map((item, index) => (
-          <div className="py-4" key={index}>
-            <h1 className="text-lg">
-              {index + 1}. {item.question}
+    <div className="flex">
+      <Navbar />
+      <div className="flex-1 px-[16vw] bg-sky-400">
+        <div className="px-[7vw] py-12 bg-white">
+          <FadeIn>
+            <h1 className="text-6xl font-semibold">CBT</h1>
+            <h1 className="py-4 text-xl">
+              Answer the following questions based on how much were you bothered by
+              these for the past week:
             </h1>
-            <div className="flex flex-row gap-4 py-2">
-              {item.choices.map((choice) => (
-                <div className="flex flex-row items-center gap-2" key={choice}>
-                  <input
-                    type="radio"
-                    checked={ans[index].answer === choice}
-                    onChange={() =>
-                      setAns((prev) =>
-                        prev.map((answer, i) =>
-                          i === index ? { ...answer, answer: choice } : answer
-                        )
-                      )
-                    }
-                    name={item.question + choice}
-                  />
-                  <label>{choice}</label>
-                </div>
-              ))}
+
+            <div className="mb-8">
+              <AnimatedProgress
+                value={ans.filter(answer => answer.answer !== "").length}
+                maxValue={ans.length}
+                height="24px"
+                fillColor="#0ea5e9"
+                showPercentage={true}
+                animated={!shouldReduceMotion}
+                delay={0.2}
+              />
+              <p className="text-sm text-gray-600 mt-2">
+                Progress: {ans.filter(answer => answer.answer !== "").length} of {ans.length} questions answered
+              </p>
             </div>
-          </div>
-        ))}
-        <div className="flex w-full gap-4">
-          <button
-            onClick={() => navigate("/")}
-            className="col-span-3 bg-gradient-to-bl from-gray-600 to-gray-300 bg-[position:_0%_0%] hover:bg-[position:_100%_100%] bg-[size:_200%] transition-all duration-500 text-[#02203c] p-3 rounded-md"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() => submit()}
-            className="col-span-3 bg-gradient-to-bl from-sky-600 to-sky-300 bg-[position:_0%_0%] hover:bg-[position:_100%_100%] bg-[size:_200%] transition-all duration-500 text-[#02203c] p-3 rounded-md"
-          >
-            Submit
-          </button>
+          </FadeIn>
+
+          {set.map((item, index) => (
+            <AnimatedCard
+              key={index}
+              className="py-4 mb-4"
+              delay={index * 0.1}
+              hoverEffect={!shouldReduceMotion}
+            >
+              <h1 className="text-lg font-medium">
+                {index + 1}. {item.question}
+              </h1>
+              <div className="flex flex-row gap-4 py-2 flex-wrap">
+                {item.choices.map((choice, choiceIndex) => (
+                  <div className="flex flex-row items-center gap-2" key={choice}>
+                    <input
+                      type="radio"
+                      checked={ans[index].answer === choice}
+                      onChange={() =>
+                        setAns((prev) =>
+                          prev.map((answer, i) =>
+                            i === index ? { ...answer, answer: choice } : answer
+                          )
+                        )
+                      }
+                      name={item.question + choice}
+                      className="w-4 h-4"
+                    />
+                    <label className="cursor-pointer hover:text-sky-600 transition-colors">
+                      {choice}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </AnimatedCard>
+          ))}
+
+          <FadeIn delay={set.length * 0.1}>
+            <div className="flex w-full gap-4">
+              <button
+                onClick={() => navigate("/")}
+                className="col-span-3 bg-gradient-to-bl from-gray-600 to-gray-300 bg-[position:_0%_0%] hover:bg-[position:_100%_100%] bg-[size:_200%] transition-all duration-500 text-[#02203c] p-3 rounded-md"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => submit()}
+                disabled={ans.some((answer) => answer.answer === "")}
+                className="col-span-3 bg-gradient-to-bl from-sky-600 to-sky-300 bg-[position:_0%_0%] hover:bg-[position:_100%_100%] bg-[size:_200%] transition-all duration-500 text-[#02203c] p-3 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Submit Assessment
+              </button>
+            </div>
+          </FadeIn>
         </div>
       </div>
     </div>

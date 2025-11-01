@@ -2,6 +2,14 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../components/Navbar/Navbar";
 import ProgressBar from "@ramonak/react-progress-bar";
 import axios from "axios";
+import {
+  AnimatedCard,
+  AnimatedProgress,
+  CoinCounter,
+  SuccessAnimation,
+  FadeIn
+} from "../../components/Animations";
+import { useCoinAnimation, useSuccessAnimation, useReducedMotion } from "../../utils/animations/useAnimationHooks";
 
 const initialRewards = [
   {
@@ -65,10 +73,73 @@ const initialRewards = [
 const Awards = () => {
   const [rewards, setRewards] = useState(initialRewards);
   const [availableRewards, setAvailableRewards] = useState([]);
-  const [userCoins, setUserCoins] = useState(0);
   const [targetCoins, setTargetCoins] = useState(500);
   const [loading, setLoading] = useState(true);
   const [redeemStatus, setRedeemStatus] = useState({});
+
+  // Animation hooks
+  const { coins: userCoins, addCoins, spendCoins } = useCoinAnimation(0);
+  const { showSuccess, message, triggerSuccess } = useSuccessAnimation();
+  const shouldReduceMotion = useReducedMotion();
+
+  // Handle adding coins for testing
+  const handleAddCoins = async () => {
+    try {
+      const userData = localStorage.getItem("data");
+      console.log("User data from localStorage:", userData);
+
+      if (userData) {
+        const user = JSON.parse(userData);
+        console.log("Parsed user:", user);
+        const email = user.email;
+        console.log("User email:", email);
+
+        if (!email) {
+          console.error("No email found in user data");
+          // Create default user data if no email exists
+          const defaultEmail = "user@example.com";
+          localStorage.setItem("data", JSON.stringify({ email: defaultEmail, name: "Test User" }));
+          console.log("Created default user data");
+
+          const res = await axios.post("http://localhost:5000/add-coins", {
+            email: defaultEmail,
+            amount: 100
+          });
+
+          console.log("Add coins response:", res.data);
+          addCoins(100, 'bounce');
+          triggerSuccess("Successfully added 100 coins!");
+          return;
+        }
+
+        const res = await axios.post("http://localhost:5000/add-coins", {
+          email: email,
+          amount: 100
+        });
+
+        console.log("Add coins response:", res.data);
+        addCoins(100, 'bounce');
+        triggerSuccess("Successfully added 100 coins!");
+      } else {
+        console.error("No user data found in localStorage");
+        // Create default user data if none exists
+        const defaultEmail = "user@example.com";
+        localStorage.setItem("data", JSON.stringify({ email: defaultEmail, name: "Test User" }));
+        console.log("Created default user data");
+
+        const res = await axios.post("http://localhost:5000/add-coins", {
+          email: defaultEmail,
+          amount: 100
+        });
+
+        console.log("Add coins response:", res.data);
+        addCoins(100, 'bounce');
+        triggerSuccess("Successfully added 100 coins!");
+      }
+    } catch (error) {
+      console.error("Error adding coins:", error);
+    }
+  };
 
   useEffect(() => {
     // Simulate fetching user's rewards data
@@ -81,12 +152,12 @@ const Awards = () => {
           const email = user.email;
 
           // Fetch user rewards
-          const res = await axios.post("/rewards", {
+          const res = await axios.post("http://localhost:5000/rewards", {
             email: email,
           });
 
           setRewards(res.data.rewards || []);
-          setUserCoins(res.data.totalPoints || 0);
+          addCoins(res.data.totalPoints || 0, 'bounce');
           setAvailableRewards(res.data.availableRewards || []);
         }
         setLoading(false);
@@ -108,30 +179,39 @@ const Awards = () => {
 
     try {
       setRedeemStatus({ ...redeemStatus, [rewardId]: "processing" });
-      
+
       // Use the backend API to redeem reward
       const email = JSON.parse(localStorage.getItem("data")).email;
-      const res = await axios.post("/redeem-reward", {
+      const res = await axios.post("http://localhost:5000/redeem-reward", {
         email: email,
         rewardId: rewardId
       });
 
-      // Update user's points
-      setUserCoins(prevCoins => prevCoins - coinCost);
+      // Update user's points with animation
+      spendCoins(coinCost);
       setRedeemStatus({ ...redeemStatus, [rewardId]: "redeemed" });
 
+      // Trigger success animation
+      const reward = rewards.find(r => r.id === rewardId);
+      triggerSuccess(`Successfully redeemed ${reward?.title}!`);
+
       // Refresh rewards data
-      const rewardsRes = await axios.post("/rewards", {
+      const rewardsRes = await axios.post("http://localhost:5000/rewards", {
         email: email,
       });
       setRewards(rewardsRes.data.rewards || []);
-      setUserCoins(rewardsRes.data.totalPoints || 0);
-      
-      // Optional: Remove the redeemed item or mark as redeemed
-      // setRewards(rewards.filter(reward => reward.id !== rewardId));
+      addCoins(rewardsRes.data.totalPoints - userCoins + coinCost, 'bounce');
+
+      // Reset redeem status after delay
+      setTimeout(() => {
+        setRedeemStatus(prev => ({ ...prev, [rewardId]: null }));
+      }, 3000);
     } catch (error) {
       console.error("Error redeeming reward:", error);
       setRedeemStatus({ ...redeemStatus, [rewardId]: "failed" });
+      setTimeout(() => {
+        setRedeemStatus(prev => ({ ...prev, [rewardId]: null }));
+      }, 3000);
     }
   };
 
@@ -142,42 +222,54 @@ const Awards = () => {
     <div className="flex flex-row">
       <Navbar />
       <div className="w-full">
-        <div className="flex flex-row items-center justify-between p-6 bg-teal-100 h-fit shadow-lg">
-          <h1 className="ml-4 text-3xl font-semibold text-teal-800">
-            Rewards for you!
-          </h1>
-          <div className="flex items-center">
-            <svg 
-              className="w-6 h-6 text-yellow-500 mr-2" 
-              fill="currentColor" 
-              viewBox="0 0 20 20" 
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9 5a1 1 0 012 0v2a1 1 0 11-2 0V5zm0 8a1 1 0 012 0v2a1 1 0 11-2 0v-2zm8-5a1 1 0 00-1-1h-2a1 1 0 100 2h2a1 1 0 001-1zM5 8a1 1 0 100 2h2a1 1 0 100-2H5z" clipRule="evenodd"></path>
-            </svg>
-            <h1 className="text-xl font-semibold">{userCoins} Coins</h1>
-          </div>
-        </div>
-        
-        <div className="p-4">
-          <h1 className="font-semibold text-2xl mb-4 mt-4">
-            Redeem your coins for amazing fitness rewards!
-          </h1>
-          
-          <div className="w-1/2 mb-8">
-            <h1 className="text-lg font-semibold mb-3">
-              Progress towards {targetCoins} coins milestone: 
+        <FadeIn>
+          <div className="flex flex-row items-center justify-between p-6 bg-teal-100 h-fit shadow-lg">
+            <h1 className="ml-4 text-3xl font-semibold text-teal-800">
+              Rewards for you!
             </h1>
-            <ProgressBar 
-              completed={progressPercentage} 
-              bgColor="#14b8a6"
-              height="20px"
-              labelAlignment="center"
-              baseBgColor="#e5e7eb"
-              labelColor="#ffffff"
-            />
-            <p className="text-sm text-gray-600 mt-2">Complete more activities to earn additional coins!</p>
+            <div className="flex items-center">
+              <CoinCounter
+                value={userCoins}
+                size="large"
+                showAnimation={!shouldReduceMotion}
+                className="text-xl font-semibold"
+              />
+            </div>
           </div>
+        </FadeIn>
+        
+        <FadeIn delay={0.2}>
+          <div className="p-4">
+            <div className="flex justify-between items-center mb-4 mt-4">
+              <h1 className="font-semibold text-2xl">
+                Redeem your coins for amazing fitness rewards!
+              </h1>
+              <button
+                onClick={handleAddCoins}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Add 100 Coins
+              </button>
+            </div>
+
+            <div className="w-1/2 mb-8">
+              <h1 className="text-lg font-semibold mb-3">
+                Progress towards {targetCoins} coins milestone:
+              </h1>
+              <AnimatedProgress
+                value={userCoins}
+                maxValue={targetCoins}
+                height="20px"
+                fillColor="#14b8a6"
+                showPercentage={true}
+                animated={!shouldReduceMotion}
+                delay={0.3}
+              />
+              <p className="text-sm text-gray-600 mt-2">Complete more activities to earn additional coins!</p>
+            </div>
           
           <div className="flex flex-row flex-wrap justify-evenly gap-8">
             {loading ? (
@@ -201,32 +293,35 @@ const Awards = () => {
                 <span className="sr-only">Loading...</span>
               </div>
             ) : (
-              rewards.map((reward) => (
-                <div key={reward.id} className="w-[300px] bg-white p-4 shadow-lg rounded-lg flex flex-col items-center hover:shadow-xl transition-shadow duration-300">
+              rewards.map((reward, index) => (
+                <AnimatedCard
+                  key={reward.id}
+                  className="w-[300px] bg-white p-4 shadow-lg rounded-lg flex flex-col items-center"
+                  delay={index * 0.1}
+                  hoverEffect={!shouldReduceMotion}
+                  tapEffect={!shouldReduceMotion}
+                >
                   <div className="h-[200px] w-[280px] overflow-hidden rounded-md mb-3">
-                    <img 
-                      src={reward.image} 
-                      className="w-full h-full object-cover" 
+                    <img
+                      src={reward.image}
+                      className="w-full h-full object-cover"
                       alt={reward.title}
                     />
                   </div>
                   <h1 className="mt-2 text-xl font-semibold text-center">{reward.title}</h1>
                   <div className="mt-3 flex items-center bg-yellow-50 px-4 py-2 rounded-full">
-                    <svg 
-                      className="w-5 h-5 text-yellow-500 mr-2" 
-                      fill="currentColor" 
-                      viewBox="0 0 20 20" 
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd"></path>
-                    </svg>
-                    <h1 className="text-lg font-medium text-yellow-700">{reward.coins} coins</h1>
+                    <CoinCounter
+                      value={reward.coins}
+                      size="small"
+                      showAnimation={false}
+                      className="text-lg font-medium text-yellow-700"
+                    />
                   </div>
-                  
-                  <button 
+
+                  <button
                     className={`mt-4 w-full py-3 px-4 rounded-md text-white font-medium transition-all ${
-                      userCoins >= reward.coins 
-                        ? 'bg-teal-500 hover:bg-teal-600' 
+                      userCoins >= reward.coins
+                        ? 'bg-teal-500 hover:bg-teal-600'
                         : 'bg-gray-400 cursor-not-allowed'
                     }`}
                     onClick={() => handleRedeem(reward.id, reward.coins)}
@@ -263,15 +358,21 @@ const Awards = () => {
                       </div>
                     )}
                   </button>
-                  
+
                   {redeemStatus[reward.id] === "failed" && (
                     <p className="mt-2 text-red-500 text-sm">Failed to redeem. Try again.</p>
                   )}
-                </div>
+                </AnimatedCard>
               ))
             )}
           </div>
-        </div>
+          </div>
+        </FadeIn>
+
+        {/* Success Animation */}
+        <SuccessAnimation show={showSuccess}>
+          {message}
+        </SuccessAnimation>
       </div>
     </div>
   );

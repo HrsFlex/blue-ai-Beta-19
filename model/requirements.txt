@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+torch
+transformers
+pymupdf 
+langchain 
+langchain-community 
+chromadb 
+sentence-transformers 
+accelerate
+google-generativeai

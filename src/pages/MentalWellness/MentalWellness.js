@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MentalWellness.css';
-// import { GoogleGenAI } from "@google/genai"; // Available for future use
+// eslint-disable-next-line no-unused-vars
+import { GoogleGenAI } from "@google/genai"; // Available for future use
 import Navbar from '../../components/Navbar/Navbar';
 import VideoRecommendation from '../../components/VideoRecommendation/VideoRecommendation';
 import MoodTracker from '../../components/MoodTracker/MoodTracker';
@@ -206,7 +207,7 @@ const MentalWellness = () => {
         if (lowerMessage.includes('sad') || lowerMessage.includes('depressed') || lowerMessage.includes('down')) {
           const responses = [
             "I'm really sorry you're feeling this way. It takes courage to share your feelings when you're feeling down. I'm here to listen and support you. I think something that might help right now is a gentle activity. Let me start something for you... 💙",
-            "Thank you for trusting me with these feelings. Sadness is a natural part of life, and you don't have to go through it alone. Let me share something that might bring a little comfort to your " + timeContext + "... 🌅",
+            `Thank you for trusting me with these feelings. Sadness is a natural part of life, and you don't have to go through it alone. Let me share something that might bring a little comfort to your ${timeContext}... 🌅`,
             "I hear your pain, and I want you to know that it's okay to feel sad. Your feelings are valid. Sometimes a gentle distraction can help - let me start something soothing for you... 🌊"
           ];
           return responses[Math.floor(Math.random() * responses.length)];

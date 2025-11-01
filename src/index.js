@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./App";
 import { createBrowserRouter, RouterProvider, Navigate, Outlet } from "react-router-dom";
+import AnimatedLayout from "./components/Layout/AnimatedLayout";
 import Reports from "./pages/Reports/Reports";
 import Diet from "./pages/Diet/Diet";
 import Notifs from "./pages/Notifs/Notifs";
