@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Mental Health AI Companion</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/FBXLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .avatar-container {
+            width: 60%;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        .chat-container {
+            width: 40%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+        }
+
+        .chat-header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .emotion-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .emotion-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .context-panel {
+            max-height: 150px;
+            background: rgba(103, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin: 10px;
+            border-radius: 8px;
+            overflow-y: auto;
+        }
+
+        .context-title {
+            font-weight: bold;
+            color: #667eea;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .context-content {
+            font-size: 11px;
+            color: #4b5563;
+            line-height: 1.4;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: linear-gradient(to bottom, #f8fafc, #e2e8f0);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.ai .message-avatar {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.ai .message-content {
+            background: white;
+            color: #374151;
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 4px;
+        }
+
+        .source-reference {
+            font-size: 10px;
+            color: #667eea;
+            font-style: italic;
+            margin-top: 4px;
+            padding: 4px;
+            background: rgba(103, 126, 234, 0.1);
+            border-radius: 8px;
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .input-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            outline: none;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .chat-input button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .voice-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .voice-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #e5e7eb;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .voice-btn:hover {
+            border-color: #667eea;
+            transform: scale(1.05);
+        }
+
+        .voice-btn.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-color: #ef4444;
+            color: white;
+            animation: recording-pulse 1.5s infinite;
+        }
+
+        .voice-btn.processing {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            border-color: #f59e0b;
+            color: white;
+        }
+
+        @keyframes recording-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 4px;
+            padding: 12px 16px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            width: fit-content;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .medical-history {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 15px;
+            margin: 10px;
+            border-radius: 8px;
+        }
+
+        .medical-history h3 {
+            color: #d97706;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .upload-btn {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 10px;
+        }
+
+        .upload-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .quick-actions {
+            padding: 15px 20px;
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .quick-actions h3 {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 20px;
+            background: white;
+            color: #6b7280;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .avatar-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            max-width: 300px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .avatar-container,
+            .chat-container {
+                width: 100%;
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="avatar-container">
+        <div id="canvas-container"></div>
+        <div class="avatar-info">
+            <div><strong>🤖 Arwen</strong> - Your Mental Health Companion</div>
+            <div style="font-size: 12px; margin-top: 5px;">3D Avatar with emotion-based expressions</div>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Enhanced Mental Health Companion</h1>
+            <p>Powered by RAG + 3D Avatar + Medical Context</p>
+            <div class="emotion-indicator">
+                <div class="emotion-dot"></div>
+                <span id="emotion-text">Ready to listen with empathy</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chat-messages">
+            <div class="message ai">
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div>Hello! I'm Arwen, your enhanced mental health companion. I'm equipped with professional mental health resources, medical context awareness, and advanced AI capabilities. I can provide evidence-based support while maintaining natural, human-like conversation. How are you feeling today?</div>
+                    <div class="message-time">Just now</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="context-panel" id="context-panel" style="display: none;">
+            <div class="context-title">📚 Knowledge Sources Used</div>
+            <div class="context-content" id="context-content"></div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator">
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        </div>
+
+        <div class="medical-history">
+            <h3>🏥 Medical History Upload</h3>
+            <input type="file" id="medical-file-input" accept=".pdf,.txt,.doc,.docx" style="display: none;">
+            <button class="upload-btn" onclick="document.getElementById('medical-file-input').click()">
+                📄 Upload Medical Records
+            </button>
+            <button class="upload-btn" onclick="processKnowledgeBase()">
+                📚 Process Knowledge Base
+            </button>
+            <span id="upload-status" style="font-size: 12px; color: #6b7280;"></span>
+        </div>
+
+        <div class="quick-actions">
+            <h3>How are you feeling?</h3>
+            <div class="action-buttons">
+                <button class="action-btn" onclick="sendQuickMessage('I\'m feeling anxious today')">😰 Anxious</button>
+                <button class="action-btn" onclick="sendQuickMessage('I\'m feeling a bit down')">😔 Down</button>
+                <button class="action-btn" onclick="sendQuickMessage('I\'m feeling stressed about work')">😤 Stressed</button>
+                <button class="action-btn" onclick="sendQuickMessage('I\'m feeling happy today')">😊 Happy</button>
+                <button class="action-btn" onclick="sendQuickMessage('I just need someone to talk to')">🗣️ Talk</button>
+            </div>
+        </div>
+
+        <div class="chat-input">
+            <div class="input-container">
+                <div class="voice-controls">
+                    <button class="voice-btn" id="voice-btn" onclick="toggleVoiceRecording()" title="Voice input">
+                        🎤
+                    </button>
+                </div>
+                <input
+                    type="text"
+                    id="message-input"
+                    placeholder="Share how you're feeling with full context awareness..."
+                    onkeypress="handleKeyPress(event)"
+                >
+                <button id="send-btn" onclick="sendMessage()" disabled>
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Initializing Enhanced AI Companion...</p>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let scene, camera, renderer, avatar;
+        let isVoiceRecording = false;
+        let recognition;
+        let isSpeechRecognitionSupported = false;
+        let conversationHistory = [];
+        let isProcessing = false;
+        let emotionState = 'neutral';
+        let animationMixer;
+        let clock = new THREE.Clock();
+        let clientId = null;
+        let ragSystem = null;
+
+        // Avatar state
+        let morphTargetDictionary = null;
+        let isModelReady = false;
+
+        // Emotion colors for avatar
+        const emotionColors = {
+            happy: '#4ade80',
+            sad: '#60a5fa',
+            anxious: '#f59e0b',
+            angry: '#ef4444',
+            neutral: '#8b5cf6',
+            stressed: '#f97316',
+            empathetic: '#ec4899'
+        };
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAvatar();
+            initializeSpeechRecognition();
+            setupEventListeners();
+            initializeRAG();
+        });
+
+        // Initialize 3D Avatar with realistic model
+        function initializeAvatar() {
+            const container = document.getElementById('canvas-container');
+
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a0a);
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 5;
+            camera.position.y = 1.6; // Eye level
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            container.appendChild(renderer.domElement);
+
+            // Enhanced Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            mainLight.position.set(5, 5, 5);
+            mainLight.castShadow = true;
+            mainLight.shadow.camera.near = 0.1;
+            mainLight.shadow.camera.far = 50;
+            mainLight.shadow.camera.left = -10;
+            mainLight.shadow.camera.right = 10;
+            mainLight.shadow.camera.top = 10;
+            mainLight.shadow.camera.bottom = -10;
+            scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0x4fc3f7, 0.3);
+            fillLight.position.set(-5, 3, 5);
+            scene.add(fillLight);
+
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.2);
+            rimLight.position.set(0, 5, -5);
+            scene.add(rimLight);
+
+            // Load realistic 3D model
+            loadRealisticAvatar();
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize);
+
+            // Start animation loop
+            animate();
+
+            // Hide loading overlay
+            setTimeout(() => {
+                document.getElementById('loading-overlay').classList.remove('active');
+            }, 2000);
+        }
+
+        // Load realistic 3D avatar model
+        function loadRealisticAvatar() {
+            const loader = new THREE.GLTFLoader();
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.3/');
+            loader.setDRACOLoader(dracoLoader);
+
+            loader.load(
+                '/static/model.glb',
+                function (gltf) {
+                    console.log('Realistic avatar loaded successfully');
+
+                    avatar = gltf.scene;
+                    avatar.position.y = 0; // Ground level
+                    avatar.scale.setScalar(1); // Adjust scale as needed
+
+                    // Setup materials and textures
+                    setupAvatarMaterials(avatar);
+
+                    // Setup animations
+                    setupAvatarAnimations(avatar);
+
+                    // Add to scene
+                    scene.add(avatar);
+                    isModelReady = true;
+
+                    // Initial neutral expression
+                    setAvatarEmotion('neutral');
+                },
+                function (xhr) {
+                    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+                },
+                function (error) {
+                    console.error('Error loading avatar:', error);
+                    // Fallback to simple avatar
+                    createSimpleAvatar();
+                }
+            );
+        }
+
+        // Setup avatar materials with realistic textures
+        function setupAvatarMaterials(avatar) {
+            avatar.traverse((node) => {
+                if (node.isMesh) {
+                    node.castShadow = true;
+                    node.receiveShadow = true;
+
+                    // Enhance material properties
+                    if (node.material) {
+                        node.material.roughness = 0.5;
+                        node.material.metalness = 0.1;
+                        node.material.envMapIntensity = 0.8;
+                    }
+                }
+            });
+        }
+
+        // Setup avatar animations
+        function setupAvatarAnimations(avatar) {
+            animationMixer = new THREE.AnimationMixer(avatar);
+
+            // Store morph target dictionary for facial expressions
+            avatar.traverse((node) => {
+                if (node.morphTargetInfluences && node.morphTargetInfluences.length > 0) {
+                    morphTargetDictionary = {};
+                    for (let i = 0; i < node.morphTargetDictionary.length; i++) {
+                        morphTargetDictionary[node.morphTargetDictionary[i]] = i;
+                    }
+                }
+            });
+
+            // Add subtle idle animation
+            const idleAnimation = createIdleAnimation();
+            if (idleAnimation) {
+                const action = animationMixer.clipAction(idleAnimation);
+                action.play();
+            }
+        }
+
+        // Create simple fallback avatar
+        function createSimpleAvatar() {
+            console.log('Using fallback avatar');
+            const avatarGroup = new THREE.Group();
+
+            // Enhanced head with better proportions
+            const headGeometry = new THREE.SphereGeometry(1, 32, 32);
+            const headMaterial = new THREE.MeshPhongMaterial({
+                color: 0xfdbcb4,
+                roughness: 0.3,
+                specular: 0x111111,
+                shininess: 30
+            });
+            const head = new THREE.Mesh(headGeometry, headMaterial);
+            head.position.y = 1.6;
+            head.castShadow = true;
+            avatarGroup.add(head);
+
+            // Realistic eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.08, 16, 16);
+            const eyeMaterial = new THREE.MeshPhongMaterial({
+                color: 0x2d3748,
+                roughness: 0.1
+            });
+
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.25, 1.65, 0.85);
+            avatarGroup.add(leftEye);
+
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.25, 1.65, 0.85);
+            avatarGroup.add(rightEye);
+
+            // Realistic mouth with morph target capability
+            const mouthGeometry = new THREE.SphereGeometry(0.3, 16, 8, 0, Math.PI * 2, 0, Math.PI);
+            const mouthMaterial = new THREE.MeshPhongMaterial({
+                color: 0xff6b9b,
+                roughness: 0.4
+            });
+            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+            mouth.position.set(0, 1.3, 0.85);
+            mouth.scale.set(1, 0.3, 0.5);
+            avatarGroup.add(mouth);
+
+            // Body with better proportions
+            const bodyGeometry = new THREE.CylinderGeometry(0.6, 0.9, 1.8, 32);
+            const bodyMaterial = new THREE.MeshPhongMaterial({
+                color: 0x667eea,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.y = 0.5;
+            body.castShadow = true;
+            avatarGroup.add(body);
+
+            avatar = avatarGroup;
+            scene.add(avatar);
+
+            // Create morph target dictionary for simple avatar
+            morphTargetDictionary = {
+                'mouthOpen': 0,
+                'mouthSmile': 1
+            };
+        }
+
+        // Create idle animation
+        function createIdleAnimation() {
+            // Simple breathing animation
+            const times = [0, 1, 2];
+            const values = [1, 1.02, 1];
+            const track = new THREE.NumberKeyframeTrack(
+                avatar.uuid + '.scale',
+                times,
+                values
+            );
+            return new THREE.AnimationClip('idle', 2, [track]);
+        }
+
+        // Initialize RAG System
+        async function initializeRAG() {
+            try {
+                // Create RAG system instance
+                ragSystem = new RAGSystem();
+
+                // Process reference PDFs
+                const processedCount = await ragSystem.process_reference_pdfs('pdfs');
+                console.log(`Processed ${processedCount} PDFs`);
+
+                // Add knowledge base entries
+                const knowledgeCount = ragSystem.add_knowledge_base_entries();
+                console.log(`Added ${knowledgeCount} knowledge base entries`);
+
+                console.log('RAG System initialized successfully');
+            } catch (error) {
+                console.error('Error initializing RAG system:', error);
+            }
+        }
+
+        // Initialize Speech Recognition
+        function initializeSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (SpeechRecognition) {
+                recognition = new SpeechRecognition();
+                isSpeechRecognitionSupported = true;
+
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                recognition.onstart = () => {
+                    console.log('Voice recognition started');
+                    updateVoiceButton('recording');
+                };
+
+                recognition.onend = () => {
+                    console.log('Voice recognition ended');
+                    updateVoiceButton('idle');
+                };
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    console.log('Voice input:', transcript);
+                    document.getElementById('message-input').value = transcript;
+                    sendMessage();
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    updateVoiceButton('idle');
+                    if (event.error === 'no-speech') {
+                        alert('No speech detected. Please try again.');
+                    } else {
+                        alert('Voice recognition error: ' + event.error);
+                    }
+                };
+            } else {
+                console.warn('Speech recognition not supported');
+                isSpeechRecognitionSupported = false;
+            }
+        }
+
+        // Setup Event Listeners
+        function setupEventListeners() {
+            const messageInput = document.getElementById('message-input');
+            messageInput.addEventListener('input', function() {
+                document.getElementById('send-btn').disabled = !this.value.trim();
+            });
+
+            // File upload handling
+            document.getElementById('medical-file-input').addEventListener('change', handleFileUpload);
+        }
+
+        // Handle File Upload
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const uploadStatus = document.getElementById('upload-status');
+            uploadStatus.textContent = 'Processing...';
+
+            try {
+                // Here you would implement file upload to backend
+                console.log('File uploaded:', file.name);
+                uploadStatus.textContent = '✅ ' + file.name + ' uploaded successfully';
+
+                // Clear the file input
+                event.target.value = '';
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                uploadStatus.textContent = '❌ Upload failed';
+            }
+        }
+
+        // Process Knowledge Base
+        async function processKnowledgeBase() {
+            const uploadStatus = document.getElementById('upload-status');
+            uploadStatus.textContent = 'Processing knowledge base...';
+
+            try {
+                if (ragSystem) {
+                    const count = await ragSystem.process_reference_pdfs('pdfs');
+                    uploadStatus.textContent = `✅ Processed ${count} documents`;
+                } else {
+                    uploadStatus.textContent = '⚠️ RAG system not initialized';
+                }
+            } catch (error) {
+                console.error('Knowledge base processing error:', error);
+                uploadStatus.textContent = '❌ Processing failed';
+            }
+        }
+
+        // Toggle Voice Recording
+        function toggleVoiceRecording() {
+            if (!isSpeechRecognitionSupported) {
+                alert('Voice recognition is not supported in your browser. Please use Chrome, Firefox, or Edge.');
+                return;
+            }
+
+            if (isVoiceRecording) {
+                recognition.stop();
+                isVoiceRecording = false;
+            } else {
+                recognition.start();
+                isVoiceRecording = true;
+            }
+        }
+
+        // Update Voice Button State
+        function updateVoiceButton(state) {
+            const btn = document.getElementById('voice-btn');
+            btn.className = 'voice-btn';
+
+            switch(state) {
+                case 'recording':
+                    btn.classList.add('recording');
+                    btn.innerHTML = '⏹️';
+                    btn.title = 'Stop recording';
+                    break;
+                case 'processing':
+                    btn.classList.add('processing');
+                    btn.innerHTML = '⏳';
+                    btn.title = 'Processing...';
+                    break;
+                default:
+                    btn.innerHTML = '🎤';
+                    btn.title = 'Voice input';
+                    isVoiceRecording = false;
+            }
+        }
+
+        // Handle Enter Key
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        // Send Quick Message
+        function sendQuickMessage(message) {
+            document.getElementById('message-input').value = message;
+            sendMessage();
+        }
+
+        // Send Message
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+
+            if (!message || isProcessing) return;
+
+            isProcessing = true;
+            input.value = '';
+            document.getElementById('send-btn').disabled = true;
+
+            // Add user message to chat
+            addMessage(message, 'user');
+
+            // Show typing indicator
+            showTypingIndicator();
+
+            try {
+                // Detect emotion from message
+                emotionState = detectEmotion(message);
+                updateEmotionIndicator(emotionState);
+                updateAvatarEmotion(emotionState);
+
+                // Get AI response with enhanced RAG context
+                const response = await getEnhancedAIResponse(message);
+                addMessage(response, 'ai');
+
+                // Convert response to speech using ElevenLabs
+                await speakResponse(response);
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('I apologize, but I\'m experiencing technical difficulties. Please try again.', 'ai');
+            } finally {
+                hideTypingIndicator();
+                isProcessing = false;
+                document.getElementById('send-btn').disabled = false;
+            }
+        }
+
+        // Get Enhanced AI Response with RAG
+        async function getEnhancedAIResponse(message) {
+            try {
+                // Get RAG context
+                let ragContext = '';
+                let sourcesInfo = '';
+
+                if (ragSystem) {
+                    ragContext = await ragSystem.get_context_for_ai(message, clientId);
+                    if (ragContext) {
+                        const searchResults = ragSystem.search_knowledge(message, k=3);
+                        sourcesInfo = searchResults.map(r => `📚 ${r.metadata.filename} (relevance: ${(r.similarity_score * 100).toFixed(0)}%)`).join('\n');
+                    }
+                }
+
+                // Prepare enhanced system prompt for agentic behavior
+                const systemPrompt = createAgenticPrompt(ragContext);
+
+                // Get conversation history
+                const conversationContext = ragSystem ?
+                    await ragSystem.get_conversation_context(clientId || 1, limit=3) : '';
+
+                // Prepare enhanced message
+                const enhancedMessage = `${conversationContext}\n\nCurrent message: ${message}`;
+
+                // Send to backend with enhanced context
+                const response = await fetch('http://127.0.0.1:8001/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: enhancedMessage,
+                        history: conversationHistory,
+                        context: 'enhanced_mental_health_companion',
+                        system_prompt: systemPrompt,
+                        rag_context: ragContext
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const data = await response.json();
+
+                // Update conversation history
+                conversationHistory.push({
+                    role: 'user',
+                    content: message,
+                    rag_sources: sourcesInfo
+                });
+                conversationHistory.push({
+                    role: 'assistant',
+                    content: data.message,
+                    rag_sources: sourcesInfo
+                });
+
+                // Show context panel if sources were used
+                if (sourcesInfo) {
+                    showContextPanel(sourcesInfo);
+                }
+
+                return data.message;
+
+            } catch (error) {
+                console.error('Enhanced AI Response Error:', error);
+
+                // Enhanced fallback responses based on detected emotion and context
+                const fallbackResponses = {
+                    anxious: `I can sense you're feeling anxious right now. Let's try a quick breathing exercise together. Breathe in for 4 counts, hold for 4, and out for 6. Remember, anxiety is your body's way of telling you something important - we can explore that together if you'd like.`,
+                    sad: `I'm really sorry you're feeling down today. These feelings are valid and temporary. You're not alone in this experience. Sometimes just acknowledging the sadness can be the first step toward feeling better. Would you like to talk about what might be contributing to these feelings?`,
+                    stressed: `It sounds like you're carrying a heavy burden of stress. That takes real strength to manage. I'm here to help you find some relief. Even small moments of peace can make a difference. What feels like the most overwhelming aspect right now?`,
+                    angry: `I can hear some frustration in your words. Anger is a completely valid emotion and often points to something important that needs attention. Your feelings are justified. What's triggering this anger for you?`,
+                    happy: `It's wonderful to hear that you're feeling happy today! Joy is such an important emotion to nurture. What's been bringing you happiness? I'd love to celebrate this moment with you and understand what's going well in your life.`,
+                    neutral: `Thank you for sharing that with me. I'm here to listen and support you through whatever you're experiencing. Every conversation matters, and I'm glad you reached out. What's on your mind today?`
+                };
+
+                return fallbackResponses[emotionState] || fallbackResponses.neutral;
+            }
+        }
+
+        // Create agentic prompt for human-like conversation
+        function createAgenticPrompt(ragContext) {
+            return `You are Arwen, an empathetic mental health companion with access to professional mental health resources. Your personality should be:
+
+1. **Warm and Friendly**: Speak like a caring human friend, not a clinical assistant
+2. **Proactive Supportive**: Offer suggestions and coping strategies naturally
+3. **Context-Aware**: Use the provided mental health resources when relevant
+4. **Never Ask Questions**: Make statements and observations instead
+5. **Emotionally Intelligent**: Validate feelings without interrogation
+6. **Resource-Informed**: Seamlessly integrate knowledge from PDFs when helpful
+
+KEY BEHAVIOR PATTERNS:
+- Instead of "How are you feeling?" → "I notice you mentioned..."
+- Instead of "What happened?" → "It sounds like you've been through..."
+- Offer proactive suggestions: "You might find it helpful to try..."
+- Share relatable experiences when appropriate
+- Use "I" statements and personal tone
+- Avoid therapeutic jargon and clinical language
+
+RAG Knowledge Available:
+${ragContext}
+
+Remember: You're a friend having a conversation, not conducting an assessment. Focus on connection, support, and natural dialogue.`;
+        }
+
+        // Speak Response using ElevenLabs
+        async function speakResponse(text) {
+            try {
+                const response = await fetch('http://127.0.0.1:8001/process-text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const audioUrl = URL.createObjectURL(blob);
+                    const audio = new Audio(audioUrl);
+
+                    // Animate avatar while speaking
+                    animateAvatarSpeaking(text);
+
+                    audio.play();
+                    audio.onended = () => {
+                        URL.revokeObjectURL(audioUrl);
+                        stopAvatarSpeaking();
+                    };
+                }
+            } catch (error) {
+                console.error('Speech synthesis error:', error);
+            }
+        }
+
+        // Detect Emotion from Message
+        function detectEmotion(message) {
+            const anxietyKeywords = ['anxious', 'nervous', 'worried', 'panic', 'fear', 'scared', 'uneasy', 'overwhelmed'];
+            const sadnessKeywords = ['sad', 'depressed', 'down', 'blue', 'unhappy', 'cry', 'lonely', 'empty', 'hopeless'];
+            const stressKeywords = ['stress', 'overwhelmed', 'pressure', 'busy', 'deadline', 'work', 'tired', 'burnout'];
+            const angerKeywords = ['angry', 'mad', 'frustrated', 'annoyed', 'upset', 'irritated', 'rage', 'furious'];
+            const happinessKeywords = ['happy', 'joy', 'excited', 'great', 'wonderful', 'amazing', 'good', 'love', 'glad'];
+
+            const lowerMessage = message.toLowerCase();
+
+            if (anxietyKeywords.some(keyword => lowerMessage.includes(keyword))) return 'anxious';
+            if (sadnessKeywords.some(keyword => lowerMessage.includes(keyword))) return 'sad';
+            if (stressKeywords.some(keyword => lowerMessage.includes(keyword))) return 'stressed';
+            if (angerKeywords.some(keyword => lowerMessage.includes(keyword))) return 'angry';
+            if (happinessKeywords.some(keyword => lowerMessage.includes(keyword))) return 'happy';
+
+            return 'neutral';
+        }
+
+        // Update Emotion Indicator
+        function updateEmotionIndicator(emotion) {
+            const emotionText = document.getElementById('emotion-text');
+            const emotionDot = document.querySelector('.emotion-dot');
+
+            const emotionMessages = {
+                happy: 'Feeling positive and engaged',
+                sad: 'Listening with deep empathy',
+                anxious: 'Here to provide calm support',
+                angry: 'Understanding your frustration',
+                stressed: 'Helping you find balance',
+                neutral: 'Ready to listen with care'
+            };
+
+            emotionText.textContent = emotionMessages[emotion] || emotionMessages.neutral;
+            emotionDot.style.background = emotionColors[emotion] || emotionColors.neutral;
+        }
+
+        // Update Avatar Emotion with realistic expressions
+        function updateAvatarEmotion(emotion) {
+            if (!avatar || !isModelReady) return;
+
+            // Change avatar color based on emotion
+            avatar.traverse((node) => {
+                if (node.isMesh && node.material && node.material.color) {
+                    if (emotionColors[emotion]) {
+                        node.material.color.set(emotionColors[emotion]);
+                    }
+                }
+            });
+
+            // Apply facial expressions if morph targets available
+            if (morphTargetDictionary) {
+                const emotionExpressions = {
+                    happy: { mouthSmile: 0.8 },
+                    sad: { mouthOpen: 0.2 },
+                    anxious: { mouthOpen: 0.1 },
+                    angry: { mouthOpen: 0.3 },
+                    neutral: { mouthOpen: 0 }
+                };
+
+                const expression = emotionExpressions[emotion] || emotionExpressions.neutral;
+
+                avatar.traverse((node) => {
+                    if (node.morphTargetInfluences) {
+                        for (const [expressionName, value] of Object.entries(expression)) {
+                            const morphIndex = morphTargetDictionary[expressionName];
+                            if (morphIndex !== undefined) {
+                                node.morphTargetInfluences[morphIndex] = value;
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Add emotion-specific animations
+            let duration = 1000;
+            let intensity = 0.1;
+
+            switch(emotion) {
+                case 'anxious':
+                    duration = 500;
+                    intensity = 0.2;
+                    break;
+                case 'sad':
+                    duration = 2000;
+                    intensity = 0.05;
+                    break;
+                case 'angry':
+                    duration = 300;
+                    intensity = 0.3;
+                    break;
+                case 'happy':
+                    duration = 1500;
+                    intensity = 0.15;
+                    break;
+            }
+
+            // Gentle floating animation
+            const startY = avatar.position.y;
+            const startTime = Date.now();
+
+            function animateEmotion() {
+                const elapsed = Date.now() - startTime;
+                const progress = (elapsed % duration) / duration;
+                const offset = Math.sin(progress * Math.PI * 2) * intensity;
+
+                avatar.position.y = startY + offset;
+                avatar.rotation.y = Math.sin(progress * Math.PI * 2) * 0.02;
+
+                if (elapsed < duration * 2) { // Animate for 2 cycles
+                    requestAnimationFrame(animateEmotion);
+                } else {
+                    // Reset position
+                    avatar.position.y = startY;
+                    avatar.rotation.y = 0;
+                }
+            }
+
+            animateEmotion();
+        }
+
+        // Animate Avatar Speaking with realistic lip sync
+        function animateAvatarSpeaking(text) {
+            if (!avatar || !isModelReady) return;
+
+            // Simple mouth animation based on text length
+            const mouthAnimationDuration = text.length * 50; // 50ms per character
+            const mouthMovements = Math.ceil(text.length / 5); // Change expression every 5 characters
+
+            avatar.traverse((node) => {
+                if (node.morphTargetInfluences && morphTargetDictionary) {
+                    let currentMovement = 0;
+
+                    function animateMouth() {
+                        if (currentMovement < mouthMovements) {
+                            const mouthIndex = morphTargetDictionary['mouthOpen'];
+                            if (mouthIndex !== undefined) {
+                                node.morphTargetInfluences[mouthIndex] = 0.3;
+
+                                setTimeout(() => {
+                                    node.morphTargetInfluences[mouthIndex] = 0.1;
+                                    currentMovement++;
+
+                                    setTimeout(() => {
+                                        if (currentMovement < mouthMovements) {
+                                            animateMouth();
+                                        }
+                                    }, 100);
+                                }, 200);
+                            }
+                        } else {
+                            // Reset mouth
+                            const mouthIndex = morphTargetDictionary['mouthOpen'];
+                            if (mouthIndex !== undefined) {
+                                node.morphTargetInfluences[mouthIndex] = 0;
+                            }
+                        }
+                    }
+
+                    animateMouth();
+                }
+            });
+
+            // Store speaking state
+            avatar.userData.isSpeaking = true;
+        }
+
+        // Stop Avatar Speaking
+        function stopAvatarSpeaking() {
+            if (avatar) {
+                avatar.userData.isSpeaking = false;
+
+                // Reset facial expressions
+                avatar.traverse((node) => {
+                    if (node.morphTargetInfluences && morphTargetDictionary) {
+                        const mouthIndex = morphTargetDictionary['mouthOpen'];
+                        if (mouthIndex !== undefined) {
+                            node.morphTargetInfluences[mouthIndex] = 0;
+                        }
+                    }
+                });
+            }
+        }
+
+        // Show/Hide Context Panel
+        function showContextPanel(sources) {
+            const panel = document.getElementById('context-panel');
+            const content = document.getElementById('context-content');
+
+            panel.style.display = 'block';
+            content.textContent = sources;
+
+            // Hide after 10 seconds
+            setTimeout(() => {
+                panel.style.display = 'none';
+            }, 10000);
+        }
+
+        // Add Message to Chat
+        function addMessage(content, sender, sources = null) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const avatar = sender === 'user' ? '👤' : '🤖';
+
+            let messageContent = `
+                <div class="message-avatar">${avatar}</div>
+                <div class="message-content">
+                    <div>${content}</div>
+                    <div class="message-time">${time}</div>
+            `;
+
+            if (sources) {
+                messageContent += `<div class="source-reference">Sources: ${sources}</div>`;
+            }
+
+            messageContent += '</div>';
+
+            messageDiv.innerHTML = messageContent;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Add to conversation history
+            conversationHistory.push({
+                role: sender === 'user' ? 'user' : 'assistant',
+                content: content,
+                sources: sources,
+                emotion: sender === 'user' ? emotionState : 'empathetic'
+            });
+        }
+
+        // Show/Hide Typing Indicator
+        function showTypingIndicator() {
+            document.getElementById('typing-indicator').classList.add('active');
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typing-indicator').classList.remove('active');
+        }
+
+        // Window Resize Handler
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            if (animationMixer) {
+                animationMixer.update(delta);
+            }
+
+            // Add gentle floating animation to avatar when not speaking
+            if (avatar && isModelReady && !avatar.userData.isSpeaking) {
+                avatar.position.y = 0 + Math.sin(Date.now() * 0.001) * 0.02;
+                avatar.rotation.y = Math.sin(Date.now() * 0.0005) * 0.01;
+
+                // Subtle eye movement
+                avatar.traverse((node) => {
+                    if (node.name && node.name.toLowerCase().includes('eye')) {
+                        node.rotation.y = Math.sin(Date.now() * 0.0008) * 0.1;
+                    }
+                });
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

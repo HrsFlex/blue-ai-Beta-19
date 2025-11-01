@@ -1,0 +1,25 @@
+Flask
+google-generativeai
+elevenlabs
+
+# PDF Processing
+PyPDF2==3.0.1
+pdfplumber==0.10.3
+
+# RAG System
+chromadb==0.4.18
+sentence-transformers==2.2.2
+
+# Text Processing
+nltk==3.8.1
+spacy==3.7.2
+
+# Database
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# Additional utilities
+numpy==1.24.3
+pandas==1.5.3
+python-dotenv==1.0.0
+werkzeug==2.3.7
