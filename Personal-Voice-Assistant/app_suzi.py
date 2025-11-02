@@ -180,6 +180,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/uploads', exist_ok=True)
 os.makedirs('chat_sessions', exist_ok=True)
+os.makedirs('tasks', exist_ok=True)
 
 # Chat session storage
 def save_chat_session(session_id, messages):
@@ -232,6 +233,102 @@ def get_all_chat_sessions():
     except Exception as e:
         print(f"❌ Error getting chat sessions: {e}")
         return []
+
+# Task Management System
+def save_tasks(tasks):
+    """Save tasks to file"""
+    try:
+        with open('tasks/tasks.json', 'w') as f:
+            json.dump(tasks, f, indent=2)
+        print(f"✅ Tasks saved successfully")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving tasks: {e}")
+        return False
+
+def load_tasks():
+    """Load tasks from file"""
+    try:
+        if os.path.exists('tasks/tasks.json'):
+            with open('tasks/tasks.json', 'r') as f:
+                tasks = json.load(f)
+            print(f"✅ Tasks loaded successfully")
+            return tasks
+        return []
+    except Exception as e:
+        print(f"❌ Error loading tasks: {e}")
+        return []
+
+def add_task(task_title, task_type='wellness', due_date=None, priority='medium'):
+    """Add a new task"""
+    try:
+        tasks = load_tasks()
+        new_task = {
+            'id': len(tasks) + 1,
+            'title': task_title,
+            'type': task_type,  # 'wellness', 'appointment', 'medication', etc.
+            'status': 'pending',
+            'priority': priority,  # 'low', 'medium', 'high'
+            'created_at': datetime.now().isoformat(),
+            'due_date': due_date,
+            'completed_at': None
+        }
+        tasks.append(new_task)
+        save_tasks(tasks)
+        print(f"✅ Task added: {task_title}")
+        return new_task
+    except Exception as e:
+        print(f"❌ Error adding task: {e}")
+        return None
+
+def update_task_status(task_id, status):
+    """Update task status"""
+    try:
+        tasks = load_tasks()
+        for task in tasks:
+            if task['id'] == task_id:
+                task['status'] = status
+                if status == 'completed':
+                    task['completed_at'] = datetime.now().isoformat()
+                save_tasks(tasks)
+                print(f"✅ Task {task_id} updated to {status}")
+                return task
+        return None
+    except Exception as e:
+        print(f"❌ Error updating task: {e}")
+        return None
+
+def delete_task(task_id):
+    """Delete a task"""
+    try:
+        tasks = load_tasks()
+        tasks = [task for task in tasks if task['id'] != task_id]
+        save_tasks(tasks)
+        print(f"✅ Task {task_id} deleted")
+        return True
+    except Exception as e:
+        print(f"❌ Error deleting task: {e}")
+        return False
+
+def detect_task_suggestion(response_text):
+    """Detect if Suzi's response contains a task suggestion"""
+    task_keywords = {
+        'go for a walk': {'title': 'Go for a walk', 'type': 'wellness', 'priority': 'medium'},
+        'take a walk': {'title': 'Take a walk', 'type': 'wellness', 'priority': 'medium'},
+        'exercise': {'title': 'Do some exercise', 'type': 'wellness', 'priority': 'medium'},
+        'meditate': {'title': 'Meditate for 10 minutes', 'type': 'wellness', 'priority': 'medium'},
+        'deep breathing': {'title': 'Practice deep breathing', 'type': 'wellness', 'priority': 'medium'},
+        'drink water': {'title': 'Drink more water', 'type': 'wellness', 'priority': 'low'},
+        'sleep': {'title': 'Get 8 hours of sleep', 'type': 'wellness', 'priority': 'high'},
+        'doctor': {'title': 'Schedule doctor appointment', 'type': 'appointment', 'priority': 'high'},
+        'therapist': {'title': 'Schedule therapy session', 'type': 'appointment', 'priority': 'high'},
+    }
+
+    response_lower = response_text.lower()
+    for keyword, task_info in task_keywords.items():
+        if keyword in response_lower:
+            return task_info
+    return None
 
 def send_suzi_message(message, history=None, language='en'):
     """Send message to Suzi with medical context and mental health focus"""
@@ -386,6 +483,11 @@ def ai_avatar_chat():
     """Integrated AI Avatar Chat - immersive experience with 3D avatar"""
     return render_template('ai_avatar_chat.html')
 
+@app.route('/health-dashboard')
+def health_dashboard():
+    """Health Dashboard - Task management interface"""
+    return render_template('health_dashboard.html')
+
 @app.route('/chat', methods=['POST'])
 def chat():
     try:
@@ -410,6 +512,16 @@ def chat():
         # Check if medical context was used
         medical_context_used = bool(medical_manager.search_context(user_message, max_chars=100))
 
+        # Detect task suggestions in Suzi's response
+        task_suggestion = detect_task_suggestion(response)
+        created_task = None
+        if task_suggestion:
+            created_task = add_task(
+                task_suggestion['title'],
+                task_suggestion['type'],
+                priority=task_suggestion['priority']
+            )
+
         # Save updated history to session
         save_chat_session(session_id, updated_history)
 
@@ -419,6 +531,7 @@ def chat():
             "session_id": session_id,
             "medical_context_used": medical_context_used,
             "user_reports_count": len(medical_manager.user_reports),
+            "task_suggestion": created_task,
             "status": "success"
         })
 
@@ -671,13 +784,149 @@ def clear_all_chat_sessions():
         print(f"Error clearing chat sessions: {e}")
         return jsonify({"error": f"Failed to clear chat sessions: {str(e)}"}), 500
 
+# Task Management Endpoints
+@app.route('/tasks', methods=['GET'])
+def get_tasks():
+    """Get all tasks"""
+    try:
+        tasks = load_tasks()
+        # Filter tasks by status if provided
+        status_filter = request.args.get('status')
+        if status_filter:
+            tasks = [task for task in tasks if task.get('status') == status_filter]
+
+        return jsonify({
+            "tasks": tasks,
+            "total_count": len(tasks),
+            "pending_count": len([t for t in tasks if t.get('status') == 'pending']),
+            "completed_count": len([t for t in tasks if t.get('status') == 'completed'])
+        }), 200
+    except Exception as e:
+        print(f"Error getting tasks: {e}")
+        return jsonify({"error": f"Failed to get tasks: {str(e)}"}), 500
+
+@app.route('/tasks', methods=['POST'])
+def create_task():
+    """Create a new task"""
+    try:
+        data = request.get_json()
+        task_title = data.get('title')
+        task_type = data.get('type', 'wellness')
+        due_date = data.get('due_date')
+        priority = data.get('priority', 'medium')
+
+        if not task_title:
+            return jsonify({"error": "Task title is required"}), 400
+
+        new_task = add_task(task_title, task_type, due_date, priority)
+        if new_task:
+            return jsonify({
+                "message": "Task created successfully",
+                "task": new_task
+            }), 201
+        else:
+            return jsonify({"error": "Failed to create task"}), 500
+
+    except Exception as e:
+        print(f"Error creating task: {e}")
+        return jsonify({"error": f"Failed to create task: {str(e)}"}), 500
+
+@app.route('/tasks/<int:task_id>', methods=['PUT'])
+def update_task(task_id):
+    """Update task status"""
+    try:
+        data = request.get_json()
+        new_status = data.get('status')
+
+        if not new_status:
+            return jsonify({"error": "Status is required"}), 400
+
+        if new_status not in ['pending', 'completed', 'cancelled']:
+            return jsonify({"error": "Invalid status. Must be: pending, completed, or cancelled"}), 400
+
+        updated_task = update_task_status(task_id, new_status)
+        if updated_task:
+            return jsonify({
+                "message": f"Task {task_id} updated successfully",
+                "task": updated_task
+            }), 200
+        else:
+            return jsonify({"error": "Task not found"}), 404
+
+    except Exception as e:
+        print(f"Error updating task: {e}")
+        return jsonify({"error": f"Failed to update task: {str(e)}"}), 500
+
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
+def remove_task(task_id):
+    """Delete a task"""
+    try:
+        if delete_task(task_id):
+            return jsonify({
+                "message": f"Task {task_id} deleted successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Task not found"}), 404
+
+    except Exception as e:
+        print(f"Error deleting task: {e}")
+        return jsonify({"error": f"Failed to delete task: {str(e)}"}), 500
+
+@app.route('/tasks/dashboard', methods=['GET'])
+def get_dashboard():
+    """Get dashboard data with tasks overview"""
+    try:
+        tasks = load_tasks()
+
+        # Categorize tasks
+        pending_tasks = [t for t in tasks if t.get('status') == 'pending']
+        completed_today = []
+        upcoming_appointments = []
+
+        today = datetime.now().date()
+
+        for task in tasks:
+            if task.get('status') == 'completed' and task.get('completed_at'):
+                completed_date = datetime.fromisoformat(task['completed_at']).date()
+                if completed_date == today:
+                    completed_today.append(task)
+
+            if task.get('type') == 'appointment' and task.get('status') == 'pending':
+                upcoming_appointments.append(task)
+
+        # Stats by type
+        wellness_pending = len([t for t in pending_tasks if t.get('type') == 'wellness'])
+        appointment_pending = len([t for t in pending_tasks if t.get('type') == 'appointment'])
+
+        dashboard_data = {
+            "overview": {
+                "total_pending": len(pending_tasks),
+                "completed_today": len(completed_today),
+                "total_tasks": len(tasks)
+            },
+            "pending_tasks": sorted(pending_tasks, key=lambda x: x.get('created_at', ''), reverse=True)[:10],  # Last 10
+            "task_breakdown": {
+                "wellness_tasks": wellness_pending,
+                "appointment_tasks": appointment_pending,
+                "upcoming_appointments": upcoming_appointments
+            },
+            "recent_activity": completed_today[-5:] if completed_today else []  # Last 5 completed today
+        }
+
+        return jsonify(dashboard_data), 200
+
+    except Exception as e:
+        print(f"Error getting dashboard: {e}")
+        return jsonify({"error": f"Failed to get dashboard: {str(e)}"}), 500
+
 if __name__ == '__main__':
     print("🌸 Starting Suzi - Enhanced Mental Health Companion with 3D Avatar...")
     print("🌐 Standard interface: http://127.0.0.1:8001")
     print("✨ Enhanced 3D interface: http://127.0.0.1:8001/suzi-enhanced")
     print("🚀 Latest Enhanced v2: http://127.0.0.1:8001/suzi-enhanced-v2")
     print("🤖 Immersive AI Avatar Chat: http://127.0.0.1:8001/ai-avatar-chat")
-    print("📋 Embed examples: http://127.0.0.1:8001/embed-example")
+    print("📋 Health Dashboard: http://127.0.0.1:8001/health-dashboard")
+    print("📎 Embed examples: http://127.0.0.1:8001/embed-example")
     print("💚 Health check: http://127.0.0.1:8001/health")
     print("📚 Medical context: Loaded" if medical_manager.loaded else "❌ Medical context: Not loaded")
     print(f"📖 Reference files: {len([f for f in os.listdir('pdfs') if f.endswith('.pdf')]) if os.path.exists('pdfs') else 0}")
@@ -685,9 +934,10 @@ if __name__ == '__main__':
     print("🎭 3D Avatar: Enhanced with realistic rendering")
     print("🎵 Audio Player: Advanced controls with seek/volume")
     print("💬 Integrated Chat: Talk with Suzi like a real person")
-    print("⚡ NEW: Concise responses (< 60 words)")
-    print("💾 NEW: Chat history storage and management")
-    print("🎤 NEW: Enhanced voice controls with auto-detection")
-    print("🎨 NEW: Modern, intuitive UI design")
+    print("⚡ Concise responses (< 60 words)")
+    print("💾 Chat history storage and management")
+    print("🎤 Enhanced voice controls with auto-detection")
+    print("📋 Task management system with wellness tracking")
+    print("🎨 Modern, intuitive UI design")
 
     app.run(debug=True, port=8001)

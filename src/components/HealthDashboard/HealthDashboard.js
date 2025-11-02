@@ -15,9 +15,45 @@ const HealthDashboard = () => {
   const [realDataAvailable, setRealDataAvailable] = useState(false);
   const [mcpDataAvailable, setMcpDataAvailable] = useState(false);
 
+  // Task Management State
+  const [tasks, setTasks] = useState([]);
+  const [taskStats, setTaskStats] = useState({ pending: 0, completed: 0, appointments: 0 });
+  const [taskLoading, setTaskLoading] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
+
+  // Notifications State
+  const [notifications, setNotifications] = useState([
+    {
+      id: 1,
+      type: 'wellness',
+      title: '15-minute walk recommended',
+      message: 'Take a break for a refreshing walk to boost your mood',
+      time: '2 min ago',
+      read: false
+    },
+    {
+      id: 2,
+      type: 'health',
+      title: 'Health data sync complete',
+      message: 'Your latest health metrics have been updated',
+      time: '1 hour ago',
+      read: true
+    },
+    {
+      id: 3,
+      type: 'reminder',
+      title: 'Mood check-in reminder',
+      message: 'How are you feeling today? Take a quick assessment',
+      time: '3 hours ago',
+      read: false
+    }
+  ]);
+
   useEffect(() => {
     loadHealthData();
     checkRealDataAvailability();
+    loadTasks(); // Load tasks from Suzi's API
 
     // Subscribe to MCP server events
     const unsubscribeMCP = mcpHealthServer.subscribe((event, data) => {
@@ -28,8 +64,10 @@ const HealthDashboard = () => {
     mcpHealthServer.start();
 
     const interval = setInterval(loadHealthData, 60000); // Refresh every minute
+    const taskInterval = setInterval(loadTasks, 30000); // Refresh tasks every 30 seconds
     return () => {
       clearInterval(interval);
+      clearInterval(taskInterval);
       unsubscribeMCP();
     };
   }, []);
@@ -167,6 +205,132 @@ const HealthDashboard = () => {
 
   const refreshData = async () => {
     await loadHealthData();
+  };
+
+  // Task Management Functions
+  const loadTasks = async () => {
+    try {
+      setTaskLoading(true);
+      const response = await fetch('http://127.0.0.1:8001/tasks');
+      if (!response.ok) throw new Error('Failed to load tasks');
+
+      const data = await response.json();
+      setTasks(data.tasks || []);
+
+      // Calculate task statistics
+      const pendingTasks = data.tasks?.filter(t => t.status === 'pending') || [];
+      const completedTasks = data.tasks?.filter(t => t.status === 'completed') || [];
+      const appointmentTasks = data.tasks?.filter(t => t.type === 'appointment') || [];
+
+      setTaskStats({
+        pending: pendingTasks.length,
+        completed: completedTasks.length,
+        appointments: appointmentTasks.length
+      });
+    } catch (err) {
+      console.error('Error loading tasks:', err);
+      // Don't set main error state for task errors
+    } finally {
+      setTaskLoading(false);
+    }
+  };
+
+  const updateTaskStatus = async (taskId, newStatus) => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8001/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (!response.ok) throw new Error('Failed to update task');
+
+      // Reload tasks to get updated state
+      await loadTasks();
+    } catch (err) {
+      console.error('Error updating task:', err);
+      alert('Failed to update task status');
+    }
+  };
+
+  const deleteTask = async (taskId) => {
+    if (!window.confirm('Are you sure you want to delete this task?')) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8001/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) throw new Error('Failed to delete task');
+
+      // Reload tasks to get updated state
+      await loadTasks();
+    } catch (err) {
+      console.error('Error deleting task:', err);
+      alert('Failed to delete task');
+    }
+  };
+
+  const createAppointmentTask = async (doctorInfo, appointmentDate, appointmentTime) => {
+    try {
+      const taskTitle = `Appointment with Dr. ${doctorInfo.name} - ${doctorInfo.specialty}`;
+      const response = await fetch('http://127.0.0.1:8001/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: taskTitle,
+          type: 'appointment',
+          priority: 'high',
+          due_date: `${appointmentDate}T${appointmentTime}`
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to create appointment');
+
+      // Add notification for appointment
+      addNotification('appointment', 'Appointment Scheduled', `Your appointment with Dr. ${doctorInfo.name} has been scheduled`, 'just now');
+
+      // Reload tasks to get updated state
+      await loadTasks();
+      setShowAppointmentModal(false);
+      setSelectedDoctor(null);
+
+      alert('Appointment booked successfully! Check your tasks dashboard for details.');
+    } catch (err) {
+      console.error('Error creating appointment:', err);
+      alert('Failed to book appointment');
+    }
+  };
+
+  // Notification Management
+  const addNotification = (type, title, message, time) => {
+    const newNotification = {
+      id: Date.now(),
+      type,
+      title,
+      message,
+      time,
+      read: false
+    };
+    setNotifications(prev => [newNotification, ...prev].slice(0, 10)); // Keep only 10 most recent
+  };
+
+  const markNotificationAsRead = (notificationId) => {
+    setNotifications(prev =>
+      prev.map(notif =>
+        notif.id === notificationId ? { ...notif, read: true } : notif
+      )
+    );
+  };
+
+  const markAllNotificationsAsRead = () => {
+    setNotifications(prev =>
+      prev.map(notif => ({ ...notif, read: true }))
+    );
   };
 
   const getMoodColor = (prediction) => {
@@ -488,6 +652,384 @@ const HealthDashboard = () => {
     );
   };
 
+  const renderNotificationsCard = () => {
+    const unreadCount = notifications.filter(n => !n.read).length;
+
+    const getNotificationIcon = (type) => {
+      const icons = {
+        wellness: '🚶‍♀️',
+        health: '💚',
+        reminder: '⏰',
+        appointment: '📅'
+      };
+      return icons[type] || '📢';
+    };
+
+    const getNotificationColor = (type) => {
+      const colors = {
+        wellness: '#10b981',
+        health: '#3b82f6',
+        reminder: '#f59e0b',
+        appointment: '#8b5cf6'
+      };
+      return colors[type] || '#6b7280';
+    };
+
+    return (
+      <div className="metric-card notifications-card">
+        <div className="card-header">
+          <h3>🔔 Notifications</h3>
+          <div className="header-actions">
+            {unreadCount > 0 && (
+              <span className="unread-badge">{unreadCount}</span>
+            )}
+            {unreadCount > 0 && (
+              <button
+                className="mark-all-read-btn"
+                onClick={markAllNotificationsAsRead}
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="notifications-list">
+          {notifications.length === 0 ? (
+            <div className="empty-notifications">
+              <p>No notifications yet</p>
+            </div>
+          ) : (
+            notifications.slice(0, 5).map(notification => (
+              <div
+                key={notification.id}
+                className={`notification-item ${notification.read ? 'read' : 'unread'}`}
+                onClick={() => markNotificationAsRead(notification.id)}
+              >
+                <div className="notification-icon" style={{ color: getNotificationColor(notification.type) }}>
+                  {getNotificationIcon(notification.type)}
+                </div>
+                <div className="notification-content">
+                  <div className="notification-title">{notification.title}</div>
+                  <div className="notification-message">{notification.message}</div>
+                  <div className="notification-time">{notification.time}</div>
+                </div>
+                <div className="notification-status">
+                  {!notification.read && <div className="unread-dot"></div>}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderPendingTasksCard = () => {
+    const pendingTasks = tasks.filter(task => task.status === 'pending');
+
+    return (
+      <div className="metric-card pending-tasks-card">
+        <div className="card-header">
+          <h3>📝 Pending Tasks</h3>
+          <span className="refresh-icon" onClick={loadTasks}>
+            {taskLoading ? '🔄' : '🔄'}
+          </span>
+        </div>
+
+        <div className="tasks-summary">
+          <div className="summary-item">
+            <span className="summary-count">{taskStats.pending}</span>
+            <span className="summary-label">Pending</span>
+          </div>
+          <div className="summary-item">
+            <span className="summary-count">{taskStats.completed}</span>
+            <span className="summary-label">Completed</span>
+          </div>
+        </div>
+
+        <div className="pending-tasks-list">
+          {pendingTasks.length === 0 ? (
+            <div className="empty-tasks">
+              <p>No pending tasks! You're all caught up.</p>
+              <p className="empty-subtitle">Chat with Suzi to get wellness suggestions!</p>
+            </div>
+          ) : (
+            pendingTasks.slice(0, 4).map(task => (
+              <div key={task.id} className="task-item">
+                <div className="task-checkbox">
+                  <input
+                    type="checkbox"
+                    onChange={() => updateTaskStatus(task.id, 'completed')}
+                    checked={false}
+                  />
+                </div>
+                <div className="task-content">
+                  <div className="task-title">{task.title}</div>
+                  <div className="task-meta">
+                    <span className={`task-type ${task.type}`}>{task.type}</span>
+                    <span className={`task-priority ${task.priority}`}>{task.priority}</span>
+                    {task.due_date && (
+                      <span className="task-date">
+                        {new Date(task.due_date).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  className="delete-task-btn"
+                  onClick={() => deleteTask(task.id)}
+                >
+                  ×
+                </button>
+              </div>
+            ))
+          )}
+
+          {tasks.length > 4 && (
+            <div className="view-all-tasks">
+              <a
+                href="http://127.0.0.1:8001/health-dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View all tasks →
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderAppointmentsCard = () => {
+    const appointmentTasks = tasks.filter(task => task.type === 'appointment' && task.status === 'pending');
+    const upcomingAppointments = appointmentTasks.sort((a, b) => new Date(a.due_date) - new Date(b.due_date));
+
+    return (
+      <div className="metric-card appointments-card">
+        <div className="card-header">
+          <h3>📅 Appointments</h3>
+          <button
+            className="book-appointment-btn-small"
+            onClick={() => setShowAppointmentModal(true)}
+          >
+            + Book
+          </button>
+        </div>
+
+        <div className="appointments-summary">
+          <div className="summary-item">
+            <span className="summary-count">{taskStats.appointments}</span>
+            <span className="summary-label">Scheduled</span>
+          </div>
+        </div>
+
+        <div className="appointments-list">
+          {upcomingAppointments.length === 0 ? (
+            <div className="empty-appointments">
+              <p>No upcoming appointments</p>
+              <button
+                className="book-appointment-btn"
+                onClick={() => setShowAppointmentModal(true)}
+              >
+                📅 Book Appointment
+              </button>
+            </div>
+          ) : (
+            upcomingAppointments.slice(0, 3).map(appointment => (
+              <div key={appointment.id} className="appointment-item">
+                <div className="appointment-date">
+                  <div className="date-day">
+                    {new Date(appointment.due_date).getDate()}
+                  </div>
+                  <div className="date-month">
+                    {new Date(appointment.due_date).toLocaleDateString('en', { month: 'short' })}
+                  </div>
+                </div>
+                <div className="appointment-content">
+                  <div className="appointment-title">{appointment.title}</div>
+                  <div className="appointment-time">
+                    {new Date(appointment.due_date).toLocaleTimeString('en', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                  <div className="appointment-meta">
+                    <span className={`task-priority ${appointment.priority}`}>{appointment.priority}</span>
+                  </div>
+                </div>
+                <div className="appointment-actions">
+                  <button
+                    className="reschedule-btn"
+                    onClick={() => {/* TODO: Add reschedule logic */}}
+                  >
+                    📅
+                  </button>
+                  <button
+                    className="delete-task-btn"
+                    onClick={() => deleteTask(appointment.id)}
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="appointment-footer">
+          <button
+            className="find-doctors-btn"
+            onClick={() => window.open('/searchdocs', '_blank')}
+          >
+            🏥 Find Mental Health Professionals
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAppointmentModal = () => {
+    if (!showAppointmentModal) return null;
+
+    const doctors = [
+      {
+        id: 1,
+        name: "Sarah Johnson",
+        specialty: "Clinical Psychology",
+        degrees: "PhD, PsyD",
+        rating: 4.8,
+        experience: "15 years",
+        availability: "Available today",
+        consultationFee: 150,
+        telehealth: true,
+        phone: "555-0123",
+        website: "example.com"
+      },
+      {
+        id: 2,
+        name: "Michael Chen",
+        specialty: "Psychiatry",
+        degrees: "MD, Board Certified",
+        rating: 4.9,
+        experience: "12 years",
+        availability: "Tomorrow",
+        consultationFee: 200,
+        telehealth: true,
+        phone: "555-0124",
+        website: "example.com"
+      },
+      {
+        id: 3,
+        name: "Emily Rodriguez",
+        specialty: "Counseling & Therapy",
+        degrees: "MS, LPC",
+        rating: 4.7,
+        experience: "8 years",
+        availability: "This week",
+        consultationFee: 120,
+        telehealth: true,
+        phone: "555-0125",
+        website: "example.com"
+      }
+    ];
+
+    return (
+      <div className="modal-overlay" onClick={() => setShowAppointmentModal(false)}>
+        <div className="modal-content appointment-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h3>📅 Book Doctor Appointment</h3>
+            <button
+              className="close-modal-btn"
+              onClick={() => setShowAppointmentModal(false)}
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="doctors-list">
+            {doctors.map(doctor => (
+              <div key={doctor.id} className="doctor-card">
+                <div className="doctor-info">
+                  <div className="doctor-header">
+                    <h4>Dr. {doctor.name}</h4>
+                    <div className="doctor-rating">
+                      ⭐ {doctor.rating}
+                    </div>
+                  </div>
+                  <div className="doctor-specialty">{doctor.specialty}</div>
+                  <div className="doctor-degrees">{doctor.degrees}</div>
+                  <div className="doctor-experience">{doctor.experience}</div>
+                  <div className="doctor-availability">
+                    Available: {doctor.availability}
+                  </div>
+                  <div className="doctor-fee">
+                    Consultation: ${doctor.consultationFee}
+                  </div>
+                  {doctor.telehealth && (
+                    <div className="telehealth-badge">📱 Telehealth available</div>
+                  )}
+                </div>
+
+                <div className="doctor-actions">
+                  <button
+                    className="select-doctor-btn"
+                    onClick={() => setSelectedDoctor(doctor)}
+                  >
+                    Select Doctor
+                  </button>
+                  <div className="doctor-contact">
+                    <span>📞 {doctor.phone}</span>
+                    <span>🌐 Website</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {selectedDoctor && (
+            <div className="appointment-booking">
+              <h4>Book Appointment with Dr. {selectedDoctor.name}</h4>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const date = e.target.date.value;
+                const time = e.target.time.value;
+                createAppointmentTask(selectedDoctor, date, time);
+              }}>
+                <div className="form-group">
+                  <label>Select Date:</label>
+                  <input
+                    type="date"
+                    name="date"
+                    required
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Select Time:</label>
+                  <input type="time" name="time" required />
+                </div>
+                <div className="form-actions">
+                  <button type="submit" className="confirm-booking-btn">
+                    Confirm Booking
+                  </button>
+                  <button
+                    type="button"
+                    className="cancel-booking-btn"
+                    onClick={() => setSelectedDoctor(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="health-dashboard loading">
@@ -547,6 +1089,9 @@ const HealthDashboard = () => {
         {renderActivityCard()}
         {renderHeartRateCard()}
         {renderScreenTimeCard()}
+        {renderNotificationsCard()}
+        {renderPendingTasksCard()}
+        {renderAppointmentsCard()}
         {renderRecommendations()}
       </div>
 
@@ -586,6 +1131,9 @@ const HealthDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Appointment Booking Modal */}
+      {renderAppointmentModal()}
 
       {/* Health Data Connector Modal */}
       {showConnector && (

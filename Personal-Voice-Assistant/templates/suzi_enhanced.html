@@ -441,6 +441,138 @@
                 font-size: 2rem;
             }
         }
+
+        /* Task Suggestion Styles */
+        .task-suggestion {
+            margin: 15px 0;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .task-suggestion-content {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+        }
+
+        .task-suggestion-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #fbbf24;
+        }
+
+        .task-suggestion-header i {
+            font-size: 1.2rem;
+        }
+
+        .task-suggestion-body p {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .task-suggestion-meta {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .task-suggestion-meta .task-type,
+        .task-suggestion-meta .task-priority {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .task-suggestion-meta .task-type {
+            background: rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.5);
+        }
+
+        .task-suggestion-meta .task-type.appointment {
+            background: rgba(236, 72, 153, 0.3);
+            color: #f9a8d4;
+            border: 1px solid rgba(236, 72, 153, 0.5);
+        }
+
+        .task-suggestion-meta .task-priority {
+            background: rgba(245, 158, 11, 0.3);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+        }
+
+        .task-suggestion-meta .task-priority.high {
+            background: rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.5);
+        }
+
+        .task-suggestion-meta .task-priority.low {
+            background: rgba(14, 165, 233, 0.3);
+            color: #7dd3fc;
+            border: 1px solid rgba(14, 165, 233, 0.5);
+        }
+
+        .task-suggestion-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .task-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .task-btn.view-dashboard {
+            background: rgba(34, 197, 94, 0.3);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.5);
+        }
+
+        .task-btn.view-dashboard:hover {
+            background: rgba(34, 197, 94, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .task-btn.dismiss {
+            background: rgba(107, 114, 128, 0.3);
+            color: #d1d5db;
+            border: 1px solid rgba(107, 114, 128, 0.5);
+        }
+
+        .task-btn.dismiss:hover {
+            background: rgba(107, 114, 128, 0.5);
+            transform: translateY(-2px);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body>
@@ -1008,6 +1140,38 @@
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
 
+        function showTaskSuggestion(task) {
+            const chatMessages = document.getElementById('chat-messages');
+            const suggestionDiv = document.createElement('div');
+            suggestionDiv.className = 'task-suggestion';
+            suggestionDiv.innerHTML = `
+                <div class="task-suggestion-content">
+                    <div class="task-suggestion-header">
+                        <i class="fas fa-tasks"></i>
+                        <span>Task Suggestion</span>
+                    </div>
+                    <div class="task-suggestion-body">
+                        <p><strong>${task.title}</strong></p>
+                        <div class="task-suggestion-meta">
+                            <span class="task-type ${task.type}">${task.type}</span>
+                            <span class="task-priority ${task.priority}">${task.priority}</span>
+                        </div>
+                    </div>
+                    <div class="task-suggestion-actions">
+                        <button class="task-btn view-dashboard" onclick="window.open('/health-dashboard', '_blank')">
+                            <i class="fas fa-chart-line"></i> View Dashboard
+                        </button>
+                        <button class="task-btn dismiss" onclick="this.parentElement.parentElement.remove()">
+                            <i class="fas fa-times"></i> Dismiss
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            chatMessages.appendChild(suggestionDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
         async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendBtn');
@@ -1050,6 +1214,11 @@
                 // Generate and play audio
                 if (data.message) {
                     await generateAudio(data.message);
+                }
+
+                // Handle task suggestion if available
+                if (data.task_suggestion) {
+                    showTaskSuggestion(data.task_suggestion);
                 }
 
                 // Update context panel if available

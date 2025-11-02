@@ -893,3 +893,979 @@
     text-align: center;
   }
 }
+
+/* Task Management Styles */
+.tasks-card {
+  grid-column: span 2;
+  min-height: 400px;
+}
+
+.task-stats {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 20px;
+  padding: 15px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #3b82f6;
+  display: block;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 5px;
+}
+
+.task-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-bottom: 20px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.task-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.task-checkbox input {
+  width: 18px;
+  height: 18px;
+  accent-color: #10b981;
+  cursor: pointer;
+}
+
+.task-content {
+  flex: 1;
+}
+
+.task-title {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 5px;
+  font-size: 1rem;
+}
+
+.task-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.task-type,
+.task-priority,
+.task-date {
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.task-type {
+  background: #dbeafe;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.task-type.appointment {
+  background: #fce7f3;
+  color: #a21caf;
+  border: 1px solid #fbcfe8;
+}
+
+.task-priority {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.task-priority.high {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.task-priority.low {
+  background: #f0f9ff;
+  color: #0369a1;
+  border: 1px solid #bae6fd;
+}
+
+.task-date {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.reschedule-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.reschedule-btn:hover {
+  background: #2563eb;
+}
+
+.delete-task-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  opacity: 0.7;
+  transition: all 0.3s ease;
+}
+
+.delete-task-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.empty-tasks {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.empty-tasks p {
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
+
+.view-all-tasks {
+  text-align: center;
+  padding: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.view-all-tasks a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.view-all-tasks a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.task-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 15px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.book-appointment-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.book-appointment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+}
+
+/* Appointment Modal Styles */
+.appointment-modal {
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.5rem;
+}
+
+.close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #64748b;
+  padding: 5px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.close-modal-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.doctors-list {
+  margin-bottom: 30px;
+}
+
+.doctor-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  margin-bottom: 15px;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.doctor-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.doctor-info {
+  flex: 1;
+}
+
+.doctor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.doctor-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.2rem;
+}
+
+.doctor-rating {
+  color: #f59e0b;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.doctor-specialty {
+  color: #3b82f6;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.doctor-degrees {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+.doctor-experience {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.doctor-availability {
+  color: #10b981;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.doctor-fee {
+  color: #1e293b;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.telehealth-badge {
+  background: #10b981;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-block;
+}
+
+.doctor-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  margin-left: 20px;
+}
+
+.select-doctor-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-doctor-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.doctor-contact {
+  display: flex;
+  gap: 15px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.appointment-booking {
+  background: #f1f5f9;
+  padding: 25px;
+  border-radius: 12px;
+  border: 2px solid #3b82f6;
+}
+
+.appointment-booking h4 {
+  margin: 0 0 20px 0;
+  color: #1e293b;
+  font-size: 1.2rem;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+}
+
+.confirm-booking-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.confirm-booking-btn:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.cancel-booking-btn {
+  background: #64748b;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-booking-btn:hover {
+  background: #475569;
+  transform: translateY(-1px);
+}
+
+/* Responsive Design for Task Management */
+@media (max-width: 1024px) {
+  .tasks-card {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .task-stats {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .task-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .task-meta {
+    flex-wrap: wrap;
+  }
+
+  .appointment-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .doctor-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .doctor-actions {
+    width: 100%;
+    margin-left: 0;
+    align-items: stretch;
+  }
+
+  .doctor-contact {
+    justify-content: center;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+}
+
+/* Notifications Card Styles */
+.notifications-card {
+  min-height: 280px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.unread-badge {
+  background: #ef4444;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.mark-all-read-btn {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mark-all-read-btn:hover {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.notifications-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 16px;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 8px;
+  border: 1px solid transparent;
+}
+
+.notification-item.unread {
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-color: #0ea5e9;
+  font-weight: 500;
+}
+
+.notification-item.read {
+  background: #f9fafb;
+  opacity: 0.8;
+}
+
+.notification-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.notification-icon {
+  font-size: 18px;
+  margin-top: 2px;
+}
+
+.notification-content {
+  flex: 1;
+}
+
+.notification-title {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.notification-message {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.notification-time {
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.notification-status {
+  display: flex;
+  align-items: center;
+}
+
+.unread-dot {
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Pending Tasks Card Styles */
+.pending-tasks-card {
+  min-height: 280px;
+}
+
+.tasks-summary {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.summary-item {
+  text-align: center;
+  flex: 1;
+}
+
+.summary-count {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.summary-label {
+  display: block;
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.pending-tasks-list {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 16px;
+}
+
+.empty-tasks {
+  text-align: center;
+  padding: 32px 16px;
+  color: #6b7280;
+}
+
+.empty-subtitle {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-top: 8px;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.task-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-checkbox input {
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.task-content {
+  flex: 1;
+}
+
+.task-title {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.task-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.task-type,
+.task-priority,
+.task-date {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.task-type.wellness { background: #dcfce7; color: #15803d; }
+.task-type.appointment { background: #ede9fe; color: #6d28d9; }
+.task-type.meditation { background: #fef3c7; color: #d97706; }
+
+.task-priority.high { background: #fee2e2; color: #dc2626; }
+.task-priority.medium { background: #fed7aa; color: #ea580c; }
+.task-priority.low { background: #dbeafe; color: #2563eb; }
+
+.task-date {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.delete-task-btn {
+  background: #fef2f2;
+  color: #dc2626;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.delete-task-btn:hover {
+  background: #dc2626;
+  color: white;
+}
+
+/* Appointments Card Styles */
+.appointments-card {
+  min-height: 280px;
+}
+
+.book-appointment-btn-small {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.book-appointment-btn-small:hover {
+  background: #2563eb;
+}
+
+.appointments-summary {
+  display: flex;
+  gap: 24px;
+  margin: 16px 0;
+  padding: 16px;
+  background: #fef3c7;
+  border-radius: 8px;
+}
+
+.appointments-list {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 16px;
+}
+
+.appointment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.appointment-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.appointment-date {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 50px;
+}
+
+.date-day {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.date-month {
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.appointment-content {
+  flex: 1;
+}
+
+.appointment-title {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.appointment-time {
+  color: #6b7280;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.appointment-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.appointment-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.reschedule-btn {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.reschedule-btn:hover {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.appointment-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.find-doctors-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.find-doctors-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.empty-appointments {
+  text-align: center;
+  padding: 32px 16px;
+  color: #6b7280;
+}
+
+.view-all-tasks {
+  text-align: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.view-all-tasks a {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.view-all-tasks a:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+/* Responsive Design for New Cards */
+@media (max-width: 768px) {
+  .header-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .tasks-summary,
+  .appointments-summary {
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .task-item,
+  .appointment-item {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .appointment-actions {
+    align-self: flex-end;
+  }
+
+  .notification-item {
+    padding: 8px;
+  }
+
+  .find-doctors-btn {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+}

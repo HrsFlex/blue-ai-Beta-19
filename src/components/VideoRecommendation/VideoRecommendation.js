@@ -7,6 +7,7 @@ const VideoRecommendation = ({ videos, onComplete, onClose }) => {
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [watchTime, setWatchTime] = useState({});
   const [showProgress, setShowProgress] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
   const videoRefs = useRef([]);
 
   useEffect(() => {
@@ -69,6 +70,32 @@ const VideoRecommendation = ({ videos, onComplete, onClose }) => {
   const handleComplete = () => {
     const videosCount = watchedVideos.size;
     onComplete(videosCount);
+    setShowSupportModal(true);
+  };
+
+  const createWalkTask = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8001/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: 'Take a 15-minute walk for mental wellness',
+          type: 'wellness',
+          priority: 'medium',
+          due_date: new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to create walk task');
+
+      setShowSupportModal(false);
+      // You could show a success message here
+      console.log('15-minute walk task created successfully!');
+    } catch (err) {
+      console.error('Error creating walk task:', err);
+    }
   };
 
   const currentVideo = videos[currentVideoIndex];
@@ -213,6 +240,60 @@ const VideoRecommendation = ({ videos, onComplete, onClose }) => {
           </button>
         </div>
       </div>
+
+      {/* Support Modal */}
+      {showSupportModal && (
+        <div className="support-modal-overlay" onClick={() => setShowSupportModal(false)}>
+          <div className="support-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="support-modal-header">
+              <h2>💚 Support</h2>
+              <button
+                className="close-modal-btn"
+                onClick={() => setShowSupportModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="support-modal-body">
+              <h3>Take 15 Minutes for Yourself</h3>
+
+              <div className="support-message">
+                <p>I understand that the videos didn't fully lift your spirits. A gentle walk is one of the most effective ways to improve your mood naturally. The combination of fresh air, light movement, and change of scenery can make a real difference.</p>
+
+                <div className="walk-benefits">
+                  <h4>Why a Walk Helps</h4>
+                  <ul>
+                    <li>Improves mood and mental clarity</li>
+                    <li>Releases natural endorphins</li>
+                    <li>Reduces stress and anxiety</li>
+                    <li>Boosts physical health</li>
+                  </ul>
+                </div>
+
+                <p className="encouragement">You deserve this moment of self-care. Even a short walk can create positive changes in your mind and body. Be gentle with yourself - every step forward is progress.</p>
+
+                <p className="alternative">Not ready for a walk? That's completely okay. Choose what feels right for you right now - there are many paths to feeling better.</p>
+              </div>
+
+              <div className="support-actions">
+                <button
+                  className="walk-btn primary"
+                  onClick={createWalkTask}
+                >
+                  🚶‍♀️ Schedule 15-Min Walk
+                </button>
+                <button
+                  className="walk-btn secondary"
+                  onClick={() => setShowSupportModal(false)}
+                >
+                  Maybe Later
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
