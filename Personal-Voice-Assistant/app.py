@@ -6,7 +6,16 @@ from io import BytesIO
 from elevenlabs import play
 from elevenlabs.client import ElevenLabs
 from models import Base, Client, Document, DocumentChunk, Conversation, MoodEntry
-from rag_system import RAGSystem
+
+# Try to import RAG system, but make it optional
+rag_system = None
+try:
+    from rag_system import RAGSystem
+    rag_system = RAGSystem()
+    print("RAG system loaded successfully")
+except ImportError as e:
+    print(f"RAG system not available: {e}")
+    print("Running in basic mode without RAG functionality")
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -29,8 +38,7 @@ Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
 db_session = Session()
 
-# Initialize RAG System
-rag_system = RAGSystem()
+# RAG System already initialized above if available
 
 # File upload configuration
 UPLOAD_FOLDER = 'uploads'
@@ -539,9 +547,9 @@ def chat():
                     if medications:
                         client_context_parts.append(f"Current medications: {', '.join(medications)}")
                 if client.mental_health_history:
-                    history = json.loads(client.mental_health_history)
-                    if history:
-                        client_context_parts.append(f"Mental health history: {', '.join(history)}")
+                    mental_history = json.loads(client.mental_health_history)
+                    if mental_history:
+                        client_context_parts.append(f"Mental health history: {', '.join(mental_history)}")
 
                 if client_context_parts:
                     client_context = "Client background: " + "; ".join(client_context_parts)

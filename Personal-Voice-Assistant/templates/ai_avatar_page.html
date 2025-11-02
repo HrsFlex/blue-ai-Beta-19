@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Avatar Page - Suzi Integration</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .main-header {
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .main-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .avatar-container {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            width: 400px;
+            height: 600px;
+            z-index: 100;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .avatar-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 20px;
+        }
+
+        .content-area {
+            margin-right: 440px; /* Account for avatar width + spacing */
+            padding: 40px;
+            min-height: calc(100vh - 120px);
+        }
+
+        .feature-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .feature-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 15px;
+            color: #64b5f6;
+        }
+
+        .feature-card p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        .floating-toggle {
+            position: fixed;
+            top: 140px;
+            right: 440px;
+            z-index: 101;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .floating-toggle:hover {
+            background: rgba(255,255,255,0.3);
+            transform: scale(1.1);
+        }
+
+        .avatar-hidden {
+            transform: translateX(450px);
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .content-expanded {
+            margin-right: 20px;
+            transition: margin-right 0.5s ease-in-out;
+        }
+
+        .integration-code {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #64b5f6;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .avatar-container {
+                position: fixed;
+                bottom: 0;
+                right: 0;
+                top: auto;
+                width: 100%;
+                height: 300px;
+                border-radius: 20px 20px 0 0;
+            }
+
+            .content-area {
+                margin-right: 0;
+                margin-bottom: 320px;
+                padding: 20px;
+            }
+
+            .floating-toggle {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-header">
+        <h1>🤖 AI Avatar Integration Hub</h1>
+        <p>Experience Suzi - Your Mental Health Companion</p>
+    </div>
+
+    <!-- Avatar Container -->
+    <div class="avatar-container" id="avatarContainer">
+        <iframe
+            src="http://127.0.0.1:8001/suzi-enhanced"
+            class="avatar-iframe"
+            allow="microphone *"
+            title="Suzi AI Avatar">
+        </iframe>
+    </div>
+
+    <!-- Toggle Button -->
+    <div class="floating-toggle" id="toggleBtn" onclick="toggleAvatar()">
+        <span id="toggleIcon">◀</span>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-area" id="contentArea">
+        <div class="feature-card">
+            <h2>🌟 Welcome to AI Avatar Integration</h2>
+            <p>This page demonstrates how Suzi's advanced 3D avatar can be seamlessly integrated into any web application. The avatar on the right provides real-time AI-powered mental health support with voice interaction and medical context awareness.</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number">3D</div>
+                <div class="stat-label">Realistic Avatar</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">🎙️</div>
+                <div class="stat-label">Voice Recognition</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">📚</div>
+                <div class="stat-label">Medical Context</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">🎵</div>
+                <div class="stat-label">Audio Response</div>
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <h2>🔧 Integration Features</h2>
+            <p><strong>Easy Iframe Embedding:</strong> Simply embed the Suzi interface using a single iframe tag with minimal configuration.</p>
+            <br>
+            <p><strong>Responsive Design:</strong> The avatar automatically adapts to different screen sizes and devices.</p>
+            <br>
+            <p><strong>Voice Interactions:</strong> Full speech recognition and text-to-speech capabilities for natural conversations.</p>
+            <br>
+            <p><strong>Medical Knowledge:</strong> Context-aware responses using uploaded medical reports and reference materials.</p>
+        </div>
+
+        <div class="feature-card">
+            <h2>💻 Quick Integration Code</h2>
+            <p>Copy this code to embed Suzi in your project:</p>
+            <div class="integration-code">
+{% raw %}
+&lt;!-- Basic Embed --&gt;
+&lt;iframe
+    src="http://127.0.0.1:8001/suzi-enhanced"
+    width="100%"
+    height="600px"
+    frameborder="0"
+    allow="microphone *"
+    title="Suzi AI Companion"&gt;
+&lt;/iframe&gt;
+
+&lt;!-- React Component --&gt;
+const SuziAvatar = () => {
+    return (
+        &lt;iframe
+            src="http://127.0.0.1:8001/suzi-enhanced"
+            style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '20px'
+            }}
+            allow="microphone *"
+            title="Suzi AI"
+        /&gt;
+    );
+};
+{% endraw %}
+            </div>
+        </div>
+
+        <div class="feature-card">
+            <h2>🚀 Advanced Use Cases</h2>
+            <p><strong>Healthcare Applications:</strong> Integrate into patient portals for 24/7 mental health support.</p>
+            <br>
+            <p><strong>Educational Platforms:</strong> Add AI tutoring and emotional support to learning management systems.</p>
+            <br>
+            <p><strong>Corporate Wellness:</strong> Deploy in employee wellness programs for stress management and support.</p>
+            <br>
+            <p><strong>Telemedicine:</strong> Enhance virtual consultations with AI-powered preliminary assessments.</p>
+        </div>
+
+        <div class="feature-card">
+            <h2>📊 Performance Metrics</h2>
+            <p>The Suzi avatar system is optimized for performance with:</p>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Fast loading times with optimized 3D models</li>
+                <li>Efficient memory usage for smooth animations</li>
+                <li>Real-time audio processing capabilities</li>
+                <li>Scalable backend architecture</li>
+                <li>Low latency response times</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let avatarVisible = true;
+
+        function toggleAvatar() {
+            const avatarContainer = document.getElementById('avatarContainer');
+            const contentArea = document.getElementById('contentArea');
+            const toggleIcon = document.getElementById('toggleIcon');
+
+            avatarVisible = !avatarVisible;
+
+            if (avatarVisible) {
+                avatarContainer.classList.remove('avatar-hidden');
+                contentArea.classList.remove('content-expanded');
+                toggleIcon.textContent = '◀';
+            } else {
+                avatarContainer.classList.add('avatar-hidden');
+                contentArea.classList.add('content-expanded');
+                toggleIcon.textContent = '▶';
+            }
+        }
+
+        // Handle window resize for mobile responsiveness
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                const avatarContainer = document.getElementById('avatarContainer');
+                avatarContainer.classList.remove('avatar-hidden');
+                document.getElementById('toggleBtn').style.display = 'none';
+            } else {
+                document.getElementById('toggleBtn').style.display = 'flex';
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Check on initial load
+    </script>
+</body>
+</html>

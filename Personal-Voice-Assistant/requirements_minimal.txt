@@ -1,0 +1,14 @@
+# Core Flask web server
+Flask==3.1.2
+
+# Database
+SQLAlchemy==2.0.44
+
+# Google AI (Gemini)
+google-generativeai==0.8.5
+
+# ElevenLabs Text-to-Speech
+elevenlabs==2.21.0
+
+# PDF processing (optional - remove if not needed)
+PyPDF2==3.0.1

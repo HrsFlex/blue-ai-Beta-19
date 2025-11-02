@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suzi Embed Example</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .embed-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .embed-option {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .suzi-iframe {
+            width: 100%;
+            height: 600px;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .small-iframe {
+            width: 100%;
+            height: 400px;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .floating-suzi {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .floating-button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+        }
+
+        .floating-button:hover {
+            transform: scale(1.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+
+        .modal-content {
+            position: relative;
+            margin: 5% auto;
+            width: 90%;
+            height: 80%;
+            max-width: 1200px;
+        }
+
+        .modal-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 15px;
+        }
+
+        .close {
+            position: absolute;
+            top: -40px;
+            right: 20px;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+        }
+
+        .code-block {
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌸 Suzi Embed Examples</h1>
+        <p>Demonstrating different ways to embed the Suzi AI companion</p>
+    </div>
+
+    <div class="embed-container">
+        <!-- Full Size Embed -->
+        <div class="embed-option">
+            <h2>🎭 Full Size Embed</h2>
+            <p>Complete Suzi interface with 3D avatar and all features</p>
+            <iframe
+                src="http://127.0.0.1:8001/suzi-enhanced"
+                class="suzi-iframe"
+                allow="microphone *"
+                title="Suzi - Mental Health Companion">
+            </iframe>
+        </div>
+
+        <!-- Compact Embed -->
+        <div class="embed-option">
+            <h2>📱 Compact Embed</h2>
+            <p>Smaller version for sidebars or widgets</p>
+            <iframe
+                src="http://127.0.0.1:8001/suzi-enhanced"
+                class="small-iframe"
+                allow="microphone *"
+                title="Suzi Compact">
+            </iframe>
+        </div>
+
+        <!-- Code Examples -->
+        <div class="embed-option">
+            <h2>💻 Integration Code</h2>
+
+            <h3>Basic Iframe</h3>
+            <div class="code-block">
+&lt;iframe
+    src="http://127.0.0.1:8001/suzi-enhanced"
+    width="100%"
+    height="600px"
+    frameborder="0"
+    allow="microphone *"
+    title="Suzi - Mental Health Companion"&gt;
+&lt;/iframe&gt;
+            </div>
+
+            <h3>React Component</h3>
+            <div class="code-block">
+{% raw %}
+const SuziAvatar = () => {
+    return (
+        &lt;iframe
+            src="http://127.0.0.1:8001/suzi-enhanced"
+            style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                borderRadius: '20px'
+            }}
+            allow="microphone *"
+            title="Suzi AI Companion"
+        /&gt;
+    );
+};
+{% endraw %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Button -->
+    <div class="floating-suzi">
+        <button class="floating-button" onclick="openModal()">
+            🌸
+        </button>
+    </div>
+
+    <!-- Modal -->
+    <div id="suziModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <iframe
+                src="http://127.0.0.1:8001/suzi-enhanced"
+                class="modal-iframe"
+                allow="microphone *"
+                title="Suzi AI Companion Modal">
+            </iframe>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById('suziModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('suziModal').style.display = 'none';
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('suziModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './MentalWellness.css';
 import './MentalWellnessModal.css';
+import './MentalWellnessEnhanced.css';
 import Navbar from '../../components/Navbar/Navbar';
 import VideoRecommendation from '../../components/VideoRecommendation/VideoRecommendation';
 import MoodTracker from '../../components/MoodTracker/MoodTracker';
@@ -90,10 +91,10 @@ const MentalWellness = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Initialize conversation with a greeting
+    // Initialize conversation with a warm, welcoming greeting
     const initialMessage = {
       id: Date.now(),
-      text: "Hi! I'm your mental wellness companion. How are you feeling today?",
+      text: "Hi! I'm your mental wellness companion. I'm here to support you on your journey to better mental health. How are you feeling today? 💙",
       sender: 'bot',
       timestamp: new Date()
     };
@@ -1098,8 +1099,8 @@ const MentalWellness = () => {
             <div className="status-indicator online"></div>
           </div>
           <div className="header-text">
-            <h2>Mental Wellness Companion</h2>
-            <p>Your supportive AI friend</p>
+            <h2>Sakhi - Mental Wellness</h2>
+            <p>Your compassionate AI companion for mental wellbeing</p>
           </div>
           <div className="user-score">
             <span className="score-label">Wellness Score</span>
@@ -1306,7 +1307,7 @@ const MentalWellness = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
+            placeholder="Share how you're feeling..."
             className="message-input"
             disabled={isLoading || showVideos || showActivityModal || showDoctorModal}
           />
