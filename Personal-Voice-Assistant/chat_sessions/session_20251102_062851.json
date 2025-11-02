@@ -1,0 +1,18 @@
+{
+  "session_id": "20251102_062851",
+  "timestamp": "2025-11-02T06:28:53.277538",
+  "messages": [
+    {
+      "role": "user",
+      "content": "kaise ho tum"
+    },
+    {
+      "role": "user",
+      "content": "kaise ho tum"
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, hey there! I'm doing okay, thanks for asking. How are *you* doing today?\n"
+    }
+  ]
+}

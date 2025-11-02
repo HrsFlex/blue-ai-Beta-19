@@ -1,0 +1,18 @@
+{
+  "session_id": "20251102_062748",
+  "timestamp": "2025-11-02T06:27:49.784843",
+  "messages": [
+    {
+      "role": "user",
+      "content": "hey Sara"
+    },
+    {
+      "role": "user",
+      "content": "hey Sara"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey Sara! How's it going? What's up?\n"
+    }
+  ]
+}

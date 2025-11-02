@@ -497,7 +497,14 @@
                         <div style="font-size: 0.9rem; margin-top: 8px; opacity: 0.9; text-align: center;">
                             <span id="callStatus">Click microphone to start conversation</span>
                         </div>
-                        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px;">
+                        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 0.85rem; font-weight: 600;">Language:</label>
+                                <select id="languageSelect" style="padding: 4px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: white; font-size: 0.85rem;">
+                                    <option value="en">🇺🇸 English</option>
+                                    <option value="hi">🇮🇳 हिंदी (Hindi)</option>
+                                </select>
+                            </div>
                             <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
                                 <input type="checkbox" id="autoVoiceMode" checked style="width: 14px; height: 14px;">
                                 Auto Voice
@@ -555,6 +562,27 @@
         let isMuted = false;
         let isUserSpeaking = false;
         let isSuziSpeaking = false;
+        let currentLanguage = 'en'; // Default language
+
+        // Language configurations
+        const languageConfigs = {
+            'en': {
+                name: 'English',
+                flag: '🇺🇸',
+                recognitionLang: 'en-US',
+                welcomeMessage: 'Hi there! I\'m Suzi, your mental health companion. Click the green microphone button to start our conversation - I\'m here to listen and support you. Think of this like a phone call with a caring friend! 📞',
+                placeholder: 'Talk to Suzi about your feelings...',
+                voiceId: '21m00Tcm4TlvDq8ikWAM' // ElevenLabs voice ID for English (Rachel)
+            },
+            'hi': {
+                name: 'हिंदी (Hindi)',
+                flag: '🇮🇳',
+                recognitionLang: 'hi-IN',
+                welcomeMessage: 'नमस्ते! मैं सुज़ी हूं, आपका मानसिक स्वास्थ्य साथी। हरे माइक्रोफोन बटन पर क्लिक करके हमारी बातचीत शुरू करें - मैं आपकी सुनने और सहायता करने के लिए यहां हूं। इसे एक प्यार करने वाले दोस्त के साथ फोन कॉल की तरह सोचें! 📞',
+                placeholder: 'सुज़ी से अपनी भावनाओं के बारे में बात करें...',
+                voiceId: '21m00Tcm4TlvDq8ikWAM' // ElevenLabs voice ID for Hindi (Rachel multilingual)
+            }
+        };
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
@@ -931,7 +959,8 @@
 
             // Add welcome message from Suzi
             setTimeout(() => {
-                addMessage('suzi', 'Hi there! I\'m Suzi, your mental health companion. Click the green microphone button to start our conversation - I\'m here to listen and support you. Think of this like a phone call with a caring friend! 📞');
+                const config = languageConfigs[currentLanguage];
+                addMessage('suzi', config.welcomeMessage);
             }, 1000);
         }
 
@@ -975,7 +1004,8 @@
                     },
                     body: JSON.stringify({
                         message: message,
-                        history: conversationHistory
+                        history: conversationHistory,
+                        language: currentLanguage
                     })
                 });
 
@@ -1025,7 +1055,7 @@
             recognition = new SpeechRecognition();
             recognition.continuous = false;
             recognition.interimResults = false;
-            recognition.lang = 'en-US';
+            recognition.lang = languageConfigs[currentLanguage].recognitionLang;
 
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
@@ -1034,6 +1064,41 @@
             recognition.onend = () => {
                 // Recognition will be restarted by phone call logic if needed
             };
+        }
+
+        // Language Change Function
+        function changeLanguage(languageCode) {
+            if (!languageConfigs[languageCode]) {
+                console.error('Language not supported:', languageCode);
+                return;
+            }
+
+            const prevLang = currentLanguage;
+            currentLanguage = languageCode;
+            const config = languageConfigs[languageCode];
+
+            console.log(`Changing language from ${prevLang} to ${config.name}`);
+
+            // Update voice recognition language
+            if (recognition) {
+                recognition.lang = config.recognitionLang;
+            }
+
+            // Update input placeholder
+            const messageInput = document.getElementById('messageInput');
+            messageInput.placeholder = config.placeholder;
+
+            // Update welcome message if no messages exist yet
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages.children.length <= 1) { // Only welcome message exists
+                chatMessages.innerHTML = '';
+                setTimeout(() => {
+                    addMessage('suzi', config.welcomeMessage);
+                }, 500);
+            }
+
+            // Add language change notification
+            addMessage('suzi', `${config.flag} Language changed to ${config.name}. You can now speak in ${config.name}!`);
         }
 
         // Medical Report Upload
@@ -1077,13 +1142,34 @@
         // Audio generation
         async function generateAudio(text) {
             try {
+                const config = languageConfigs[currentLanguage];
                 const response = await fetch('http://127.0.0.1:8001/process-text', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ text: text })
+                    body: JSON.stringify({
+                        text: text,
+                        language: currentLanguage,
+                        voice_id: config.voiceId
+                    })
                 });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    console.error('Audio generation API error:', errorData);
+
+                    // Handle quota exceeded gracefully
+                    if (errorData.error && errorData.error.includes('quota')) {
+                        const callStatus = document.getElementById('callStatus');
+                        if (isInCall) {
+                            callStatus.textContent = 'Voice quota exceeded - Text mode only';
+                        }
+                        // Show visual notification
+                        addMessage('suzi', '📵 Sorry, my voice service is temporarily unavailable. I can still chat with you via text!');
+                    }
+                    return;
+                }
 
                 const audioBlob = await response.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
@@ -1129,6 +1215,12 @@
             } catch (error) {
                 console.error('Audio generation error:', error);
                 isSuziSpeaking = false;
+
+                // Show fallback message
+                const callStatus = document.getElementById('callStatus');
+                if (isInCall) {
+                    callStatus.textContent = 'Voice service unavailable - Text mode active';
+                }
             }
         }
 
@@ -1152,9 +1244,16 @@
         function initVoiceControls() {
             const micBtn = document.getElementById('micBtn');
             const muteBtn = document.getElementById('muteBtn');
+            const languageSelect = document.getElementById('languageSelect');
             const autoVoiceCheckbox = document.getElementById('autoVoiceMode');
             const speakerCheckbox = document.getElementById('speakerMode');
             const callStatus = document.getElementById('callStatus');
+
+            // Language selection
+            languageSelect.addEventListener('change', (e) => {
+                const selectedLang = e.target.value;
+                changeLanguage(selectedLang);
+            });
 
             // Microphone button - toggle call state
             micBtn.addEventListener('click', () => {
@@ -1342,8 +1441,8 @@
                 setTimeout(() => {
                     sendMessage();
 
-                    // Continue listening if still in call
-                    if (isInCall) {
+                    // Continue listening if still in call and Suzi is not speaking
+                    if (isInCall && !isSuziSpeaking) {
                         setTimeout(() => {
                             try {
                                 recognition.start();

@@ -233,7 +233,7 @@ def get_all_chat_sessions():
         print(f"❌ Error getting chat sessions: {e}")
         return []
 
-def send_suzi_message(message, history=None):
+def send_suzi_message(message, history=None, language='en'):
     """Send message to Suzi with medical context and mental health focus"""
     if not model:
         return "I'm sorry, I'm having trouble connecting right now. Please check back later.", []
@@ -241,8 +241,42 @@ def send_suzi_message(message, history=None):
     # Get relevant medical context (reference + user reports)
     medical_context = medical_manager.search_context(message, max_chars=1800)
 
-    # Create Suzi's personality prompt with concise response requirements
-    suzi_prompt = f"""You are Suzi, a mental health companion on a phone call. Speak naturally like you're having a real phone conversation with a friend who needs support.
+    # Create language-specific prompts
+    if language == 'hi':
+        # Hindi prompt
+        suzi_prompt = f"""तुम सुज़ी हो, एक मानसिक स्वास्थ्य साथी जो फोन पर बात कर रही है। प्राकृतिक रूप से बात करो जैसे तुम एक दोस्त के साथ असली फोन कॉल पर बात कर रही हो।
+
+फोन बातचीत शैली:
+- सभी जवाब 50 शब्दों के अंदर रखें - प्राकृतिक फोन बात की तरह
+- बातचीत के भराव: "अरे", "वैसे", "तुम्हारे पास", "मैं देखती हूं"
+- रीयल-टाइम में सुनकर जवाब देने की तरह बात करो
+- छोटे वाक्य - सुनने में आसान
+- गर्म और सहायक रहो, जैसे फोन पर एक प्यार करने वाली दोस्त
+
+महत्वपूर्ण आवश्यकताएं:
+- यह एक फोन कॉल है - जवाब बोले जाने पर प्राकृतिक लगें
+- इसे संक्षिप्त और समझने में आसान रखें
+- प्रति जवाब एक व्यावहारिक सुझाव पर ध्यान केंद्रित करें
+- सहानुभूतिपूर्ण, सुनने वाली भाषा का उपयोग करें: "मैं सुन रही हूं", "यह बहुत मुश्किल लगता है", "मैं समझती हूं"
+
+जवाब प्रारूप:
+1. त्वरित स्वीकृति (5-10 शब्द)
+2. एक सरल व्यावहारिक टिप (25-35 शब्द)
+3. संक्षिप्त प्रोत्साहन (5-10 शब्द)
+
+उदाहरण फोन जवाब:
+"अरे, मैं सुन रही हूं कि तुम चिंतित महसूस कर रही हो। अभी तीन गहरी सांसें लेने की कोशिश करो - नाक से 4 गिनती में अंदर, मुंह से 6 बाहर। यह वास्तव में मदद करता है। तुम बहुत अच्छा कर रही हो।"
+
+"तुम्हारे पास, यह वास्तव में बहुत तनावपूर्ण लगता है। सिर्फ 5 मिनट के लिए बाहर निकलने का क्या ख्याल है? ताजी हवा तुम्हारे सिर को साफ करने में मदद कर सकती है। अपने आप के साथ दयालु रहो।"
+
+सुरक्षा: यदि आवश्यक हो, तो संक्षिप्त में कहें: "यदि तुम्हारे मन में खुद को नुकसान पहुंचाने के बारे में विचार आ रहे हैं, तो कृपया अभी 988 पर कॉल करें - वे 24/7 मदद करने के लिए यहां हैं।"
+
+{f"चिकित्सा ज्ञान आधार:\n{medical_context}\n\n" if medical_context else "अभी कोई विशिष्ट चिकित्सा संदर्भ उपलब्ध नहीं है।\n\n"}
+
+याद रखें: यह एक फोन बातचीत है - इसे प्राकृतिक, संक्षिप्त और बातचीतपूर्ण रखें।"""
+    else:
+        # English prompt (default)
+        suzi_prompt = f"""You are Suzi, a mental health companion on a phone call. Speak naturally like you're having a real phone conversation with a friend who needs support.
 
 PHONE CONVERSATION STYLE:
 - Keep ALL responses under 50 words - like natural phone talk
@@ -361,6 +395,7 @@ def chat():
         user_message = request.json.get('message')
         history = request.json.get('history', [])
         session_id = request.json.get('session_id', datetime.now().strftime('%Y%m%d_%H%M%S'))
+        language = request.json.get('language', 'en')  # Default to English
 
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
@@ -368,8 +403,9 @@ def chat():
         print(f"User message: {user_message}")
         print(f"History length: {len(history)}")
         print(f"Session ID: {session_id}")
+        print(f"Language: {language}")
 
-        response, updated_history = send_suzi_message(user_message, history)
+        response, updated_history = send_suzi_message(user_message, history, language)
 
         # Check if medical context was used
         medical_context_used = bool(medical_manager.search_context(user_message, max_chars=100))
@@ -398,6 +434,8 @@ def process_text():
 
         user_data = request.get_json()
         user_text = user_data.get('text', '')
+        language = user_data.get('language', 'en')
+        requested_voice_id = user_data.get('voice_id', None)
 
         if not user_text:
             return jsonify({"error": "No text provided"}), 400
@@ -406,11 +444,22 @@ def process_text():
             return jsonify({"error": "ElevenLabs not configured"}), 500
 
         print(f"Processing text: {user_text}")
+        print(f"Language: {language}")
+        print(f"Requested voice ID: {requested_voice_id}")
+
+        # Map language to appropriate voice ID
+        voice_mapping = {
+            'en': "21m00Tcm4TlvDq8ikWAM",  # Rachel voice (English)
+            'hi': "21m00Tcm4TlvDq8ikWAM"   # Use Rachel voice for Hindi (multilingual support)
+        }
+
+        # Use requested voice ID or default to language mapping
+        voice_id = requested_voice_id or voice_mapping.get(language, "21m00Tcm4TlvDq8ikWAM")
 
         # Generate audio using ElevenLabs
         audio_generator = eleven_client.text_to_speech.convert(
             text=user_text,
-            voice_id="21m00Tcm4TlvDq8ikWAM",  # Rachel voice
+            voice_id=voice_id,
             model_id="eleven_multilingual_v2",
             voice_settings={
                 "stability": 0.75,
