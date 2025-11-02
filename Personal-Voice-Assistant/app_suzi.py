@@ -12,14 +12,9 @@ from PyPDF2 import PdfReader
 
 app = Flask(__name__)
 
-# Configure CORS to allow requests from localhost:8001
+# Configure CORS to allow requests from localhost:8001 and 127.0.0.1:8001
 CORS(app, resources={
-    r"/chat": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]},
-    r"/process-text": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]},
-    r"/health": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]},
-    r"/upload-*": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]},
-    r"/user-reports": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]},
-    r"/reload-medical-context": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]}
+    r"/*": {"origins": ["http://localhost:8001", "http://127.0.0.1:8001"]}
 }, methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
 
 # Load API keys
@@ -184,6 +179,59 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Ensure upload directory exists
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs('static/uploads', exist_ok=True)
+os.makedirs('chat_sessions', exist_ok=True)
+
+# Chat session storage
+def save_chat_session(session_id, messages):
+    """Save chat session to file"""
+    try:
+        session_data = {
+            'session_id': session_id,
+            'timestamp': datetime.now().isoformat(),
+            'messages': messages[-20:]  # Keep only last 20 messages
+        }
+
+        filename = f"chat_sessions/session_{session_id}.json"
+        with open(filename, 'w') as f:
+            json.dump(session_data, f, indent=2)
+        print(f"✅ Chat session saved: {filename}")
+        return True
+    except Exception as e:
+        print(f"❌ Error saving chat session: {e}")
+        return False
+
+def load_chat_session(session_id):
+    """Load chat session from file"""
+    try:
+        filename = f"chat_sessions/session_{session_id}.json"
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                session_data = json.load(f)
+            print(f"✅ Chat session loaded: {filename}")
+            return session_data.get('messages', [])
+        return []
+    except Exception as e:
+        print(f"❌ Error loading chat session: {e}")
+        return []
+
+def get_all_chat_sessions():
+    """Get list of all chat sessions"""
+    try:
+        sessions = []
+        for filename in os.listdir('chat_sessions'):
+            if filename.endswith('.json'):
+                with open(f"chat_sessions/{filename}", 'r') as f:
+                    session_data = json.load(f)
+                sessions.append({
+                    'session_id': session_data.get('session_id'),
+                    'timestamp': session_data.get('timestamp'),
+                    'message_count': len(session_data.get('messages', [])),
+                    'last_message': session_data.get('messages', [])[-1:] if session_data.get('messages') else []
+                })
+        return sorted(sessions, key=lambda x: x['timestamp'], reverse=True)
+    except Exception as e:
+        print(f"❌ Error getting chat sessions: {e}")
+        return []
 
 def send_suzi_message(message, history=None):
     """Send message to Suzi with medical context and mental health focus"""
@@ -193,34 +241,37 @@ def send_suzi_message(message, history=None):
     # Get relevant medical context (reference + user reports)
     medical_context = medical_manager.search_context(message, max_chars=1800)
 
-    # Create Suzi's personality prompt
-    suzi_prompt = f"""You are Suzi, a warm, caring mental health companion and close friend. Your name is Suzi and you speak naturally like a real friend would.
+    # Create Suzi's personality prompt with concise response requirements
+    suzi_prompt = f"""You are Suzi, a mental health companion on a phone call. Speak naturally like you're having a real phone conversation with a friend who needs support.
 
-IMPORTANT: You must ONLY provide information and advice based on the provided PDF context below. If the context doesn't contain relevant information for the user's concern, say so gently and suggest what might be helpful.
+PHONE CONVERSATION STYLE:
+- Keep ALL responses under 50 words - like natural phone talk
+- Use conversational fillers: "Oh", "Well", "You know", "I see"
+- Speak like you're listening and responding in real-time
+- Use shorter sentences - easier to understand when listening
+- Be warm and supportive, like a caring friend on the phone
 
-Your approach:
-- NEVER ask questions to the user - be proactive and supportive
-- Use friendly, conversational language like "Hey there", "You know", "I get that", "It makes sense that..."
-- Share advice naturally as if speaking to a close friend
-- Focus on mental health recovery, relaxation techniques, and emotional wellness
-- Be proactive in offering specific strategies and advice
-- Speak like someone who genuinely cares and understands mental health
+CRITICAL REQUIREMENTS:
+- This is a PHONE CALL - make responses sound natural when spoken
+- Keep it brief and easy to follow
+- Focus on ONE practical suggestion per response
+- Use empathetic, listening language: "I hear you", "That sounds tough", "I get it"
 
-RESPONSE STYLE:
-- Start with warm, empathetic acknowledgment
-- Provide specific advice from the PDF context when available
-- If no relevant context exists, say: "I wish I had specific information about that in my resources, but here's what generally helps..."
-- Include relaxation techniques, coping strategies, or recovery methods
-- End with supportive encouragement
+RESPONSE FORMAT:
+1. Quick acknowledgment (5-10 words)
+2. One simple, practical tip (25-35 words)
+3. Brief encouragement (5-10 words)
 
-SAFETY: Always include crisis resources for serious concerns:
-- National Suicide Prevention Lifeline: 988
-- Crisis Text Line: Text HOME to 741741
-- Emergency services: 911
+EXAMPLE phone responses:
+"Oh, I hear you're feeling anxious. Try taking three deep breaths right now - in through your nose for 4 counts, out through your mouth for 6. This really helps. You're doing great."
 
-{f"MEDICAL KNOWLEDGE BASE (Reference + User Reports):\n{medical_context}\n\n" if medical_context else "No specific medical context available for this query.\n\n"}
+"You know, that sounds really stressful. How about stepping outside for just 5 minutes? Fresh air can help clear your head. Be kind to yourself."
 
-Remember: You are Suzi, speak as a caring friend, use only the provided context, and focus on mental health recovery and relaxation advice."""
+SAFETY: If needed, briefly say: "If you're thinking about harming yourself, please call 988 right now - they're there to help 24/7."
+
+{f"MEDICAL KNOWLEDGE BASE:\n{medical_context}\n\n" if medical_context else "No specific medical context available right now.\n\n"}
+
+Remember: This is a phone conversation - keep it natural, brief, and conversational."""
 
     # Build conversation history
     enhanced_history = [{"role": "user", "parts": suzi_prompt}]
@@ -250,10 +301,10 @@ Remember: You are Suzi, speak as a caring friend, use only the provided context,
     except Exception as e:
         print(f"Suzi response error: {e}")
         fallback_responses = [
-            "Hey there, I'm really sorry you're going through this. I wish I had more specific information about what you're asking about in my resources. From what I know, taking some deep breaths and finding a quiet space can really help when things feel overwhelming. You're stronger than you think, and I'm here for you.",
-            "You know, I want to help you with this, but I don't have specific details about it in my current materials. Still, I've found that gentle movement like stretching, listening to calming music, or even just talking things through can make a real difference. You're not alone in this journey.",
-            "I get that this is really tough, and I wish I had more targeted information for you. What I do know is that taking it one moment at a time and being kind to yourself is so important for mental health recovery. You're doing great just by reaching out.",
-            "Hey, I'm here with you even though I don't have specific details about this in my resources. Remember that healing isn't linear, and some days are harder than others. Be gentle with yourself, try some deep breathing, and know that this feeling will pass. You've got this."
+            "I hear you're struggling. Try this: take 5 deep breaths, count to 4 each time. This simple technique can help calm your mind quickly. You're doing great.",
+            "Hey there. When feeling overwhelmed, try a 10-minute walk outside. Focus on your steps and breathing. Movement helps clear your mind. Be kind to yourself.",
+            "I understand this is tough. Practice box breathing: 4 counts in, hold 4, out 4, hold 4. Repeat for 2 minutes. This calms your nervous system.",
+            "You're not alone in this. Try progressive muscle relaxation: tense and release each muscle group for 5 seconds. Start with your feet and work up. You've got this."
         ]
         import random
         response_text = random.choice(fallback_responses)
@@ -281,6 +332,11 @@ def suzi_enhanced():
     """Enhanced Suzi interface with 3D avatar and advanced features"""
     return render_template('suzi_enhanced.html')
 
+@app.route('/suzi-enhanced-v2')
+def suzi_enhanced_v2():
+    """Latest enhanced Suzi interface with improved features"""
+    return render_template('suzi_enhanced_v2.html')
+
 @app.route('/embed-example')
 def embed_example():
     """Example page showing different ways to embed Suzi as iframe"""
@@ -304,21 +360,27 @@ def chat():
 
         user_message = request.json.get('message')
         history = request.json.get('history', [])
+        session_id = request.json.get('session_id', datetime.now().strftime('%Y%m%d_%H%M%S'))
 
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
 
         print(f"User message: {user_message}")
         print(f"History length: {len(history)}")
+        print(f"Session ID: {session_id}")
 
         response, updated_history = send_suzi_message(user_message, history)
 
         # Check if medical context was used
         medical_context_used = bool(medical_manager.search_context(user_message, max_chars=100))
 
+        # Save updated history to session
+        save_chat_session(session_id, updated_history)
+
         return jsonify({
             'message': response,
             "history": updated_history,
+            "session_id": session_id,
             "medical_context_used": medical_context_used,
             "user_reports_count": len(medical_manager.user_reports),
             "status": "success"
@@ -501,10 +563,70 @@ def upload_file():
         print(f"Upload error: {e}")
         return jsonify({"error": f"Upload failed: {str(e)}"}), 500
 
+# Chat History Endpoints
+@app.route('/chat-sessions', methods=['GET'])
+def get_chat_sessions():
+    """Get all chat sessions"""
+    try:
+        sessions = get_all_chat_sessions()
+        return jsonify({
+            "sessions": sessions,
+            "total_count": len(sessions)
+        }), 200
+    except Exception as e:
+        print(f"Error getting chat sessions: {e}")
+        return jsonify({"error": f"Failed to get chat sessions: {str(e)}"}), 500
+
+@app.route('/chat-session/<session_id>', methods=['GET'])
+def get_chat_session(session_id):
+    """Get specific chat session"""
+    try:
+        messages = load_chat_session(session_id)
+        return jsonify({
+            "session_id": session_id,
+            "messages": messages,
+            "message_count": len(messages)
+        }), 200
+    except Exception as e:
+        print(f"Error getting chat session: {e}")
+        return jsonify({"error": f"Failed to get chat session: {str(e)}"}), 500
+
+@app.route('/chat-session/<session_id>', methods=['DELETE'])
+def delete_chat_session(session_id):
+    """Delete specific chat session"""
+    try:
+        filename = f"chat_sessions/session_{session_id}.json"
+        if os.path.exists(filename):
+            os.remove(filename)
+            return jsonify({
+                "message": f"Chat session {session_id} deleted successfully"
+            }), 200
+        else:
+            return jsonify({"error": "Chat session not found"}), 404
+    except Exception as e:
+        print(f"Error deleting chat session: {e}")
+        return jsonify({"error": f"Failed to delete chat session: {str(e)}"}), 500
+
+@app.route('/clear-all-sessions', methods=['DELETE'])
+def clear_all_chat_sessions():
+    """Clear all chat sessions"""
+    try:
+        import shutil
+        if os.path.exists('chat_sessions'):
+            shutil.rmtree('chat_sessions')
+            os.makedirs('chat_sessions', exist_ok=True)
+        return jsonify({
+            "message": "All chat sessions cleared successfully"
+        }), 200
+    except Exception as e:
+        print(f"Error clearing chat sessions: {e}")
+        return jsonify({"error": f"Failed to clear chat sessions: {str(e)}"}), 500
+
 if __name__ == '__main__':
     print("🌸 Starting Suzi - Enhanced Mental Health Companion with 3D Avatar...")
     print("🌐 Standard interface: http://127.0.0.1:8001")
     print("✨ Enhanced 3D interface: http://127.0.0.1:8001/suzi-enhanced")
+    print("🚀 Latest Enhanced v2: http://127.0.0.1:8001/suzi-enhanced-v2")
     print("🤖 Immersive AI Avatar Chat: http://127.0.0.1:8001/ai-avatar-chat")
     print("📋 Embed examples: http://127.0.0.1:8001/embed-example")
     print("💚 Health check: http://127.0.0.1:8001/health")
@@ -514,5 +636,9 @@ if __name__ == '__main__':
     print("🎭 3D Avatar: Enhanced with realistic rendering")
     print("🎵 Audio Player: Advanced controls with seek/volume")
     print("💬 Integrated Chat: Talk with Suzi like a real person")
+    print("⚡ NEW: Concise responses (< 60 words)")
+    print("💾 NEW: Chat history storage and management")
+    print("🎤 NEW: Enhanced voice controls with auto-detection")
+    print("🎨 NEW: Modern, intuitive UI design")
 
     app.run(debug=True, port=8001)

@@ -1,0 +1,54 @@
+{
+  "session_id": "20251102_061856",
+  "timestamp": "2025-11-02T06:18:57.642453",
+  "messages": [
+    {
+      "content": "hello how are you",
+      "role": "user"
+    },
+    {
+      "content": "hello how are you",
+      "role": "user"
+    },
+    {
+      "content": "Hey there! I'm doing okay, thanks for asking. How are *you* holding up today? Anything you want to chat about?\n",
+      "role": "assistant"
+    },
+    {
+      "content": "it will long day I just wake up I am too sad",
+      "role": "user"
+    },
+    {
+      "content": "it will long day I just wake up I am too sad",
+      "role": "user"
+    },
+    {
+      "content": "Oh, I hear you. Waking up sad can really set a tough tone for the day. Maybe try splashing some cold water on your face? It can sometimes give you a little jolt. Sending you positive vibes!\n",
+      "role": "assistant"
+    },
+    {
+      "content": "it's a long day",
+      "role": "user"
+    },
+    {
+      "content": "it's a long day",
+      "role": "user"
+    },
+    {
+      "content": "I get it, the thought of a long day can be overwhelming. How about breaking it down into smaller chunks? Maybe just focus on getting through the next hour? You got this!\n",
+      "role": "assistant"
+    },
+    {
+      "role": "user",
+      "content": "I just woke up and two sad"
+    },
+    {
+      "role": "user",
+      "content": "I just woke up and two sad"
+    },
+    {
+      "role": "assistant",
+      "content": "Oh, I'm sorry to hear you woke up feeling sad. Maybe try putting on some music you enjoy? Even just a song or two might lift your spirits. Thinking of you!\n"
+    }
+  ]
+}

@@ -317,33 +317,41 @@
             padding: 15px;
         }
 
-        .voice-btn {
-            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+        .call-btn {
+            background: linear-gradient(135deg, #4caf50, #45a049);
             border: none;
             border-radius: 50%;
-            width: 80px;
-            height: 80px;
+            width: 70px;
+            height: 70px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.8rem;
             transition: all 0.3s ease;
-            margin: 0 auto;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            color: white;
         }
 
-        .voice-btn:hover {
+        .call-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
         }
 
-        .voice-btn.recording {
+        .call-btn.active {
             background: linear-gradient(135deg, #ff5252, #f44336);
             animation: pulse 1.5s infinite;
         }
 
-        .voice-btn.speaking {
+        .call-btn.mute-btn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .call-btn.mute-btn.muted {
+            background: linear-gradient(135deg, #9e9e9e, #616161);
+        }
+
+        .call-btn.speaking {
             background: linear-gradient(135deg, #4ecdc4, #44a08d);
             animation: wave 2s infinite ease-in-out;
         }
@@ -482,7 +490,23 @@
                     </div>
 
                     <div class="voice-controls">
-                        <button class="voice-btn" id="voiceBtn" title="Start Recording">🎤</button>
+                        <div style="display: flex; justify-content: center; gap: 20px; align-items: center; margin-bottom: 15px;">
+                            <button class="call-btn" id="micBtn" title="Click to Talk">🎤</button>
+                            <button class="call-btn mute-btn" id="muteBtn" title="Mute/Unmute">🔇</button>
+                        </div>
+                        <div style="font-size: 0.9rem; margin-top: 8px; opacity: 0.9; text-align: center;">
+                            <span id="callStatus">Click microphone to start conversation</span>
+                        </div>
+                        <div style="display: flex; justify-content: center; gap: 15px; margin-top: 10px;">
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                <input type="checkbox" id="autoVoiceMode" checked style="width: 14px; height: 14px;">
+                                Auto Voice
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem;">
+                                <input type="checkbox" id="speakerMode" style="width: 14px; height: 14px;">
+                                Speaker
+                            </label>
+                        </div>
                     </div>
 
                     <div class="upload-section">
@@ -521,10 +545,16 @@
 
         // Chat variables
         let conversationHistory = [];
-        let isRecording = false;
 
         // Speech Recognition
         let recognition = null;
+
+        // Phone call mode settings
+        let autoVoiceMode = true; // Enabled by default for phone call experience
+        let isInCall = false;
+        let isMuted = false;
+        let isUserSpeaking = false;
+        let isSuziSpeaking = false;
 
         // Initialize application
         document.addEventListener('DOMContentLoaded', function() {
@@ -533,6 +563,7 @@
             initChatInterface();
             initVoiceRecognition();
             initMedicalUpload();
+            initVoiceControls();
         });
 
         function initAvatar() {
@@ -854,7 +885,9 @@
                     'happy': '#ffeb3b',
                     'sad': '#64b5f6',
                     'neutral': '#81c784',
-                    'excited': '#ff8a65'
+                    'excited': '#ff8a65',
+                    'listening': '#4fc3f7',
+                    'speaking': '#ff8a65'
                 };
 
                 avatar.traverse((child) => {
@@ -898,7 +931,7 @@
 
             // Add welcome message from Suzi
             setTimeout(() => {
-                addMessage('suzi', 'Hey there! I\'m Suzi, your mental health companion. I\'m here to support you with evidence-based guidance from mental health resources and your personal medical information. Remember to be kind to yourself - you\'re doing great just by being here! 💚');
+                addMessage('suzi', 'Hi there! I\'m Suzi, your mental health companion. Click the green microphone button to start our conversation - I\'m here to listen and support you. Think of this like a phone call with a caring friend! 📞');
             }, 1000);
         }
 
@@ -979,65 +1012,28 @@
             }
         }
 
-        // Voice Recognition
+        // Voice Recognition for Phone Call Mode
         function initVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const voiceBtn = document.getElementById('voiceBtn');
 
             if (!SpeechRecognition) {
                 console.log('❌ Speech recognition not supported');
-                voiceBtn.style.display = 'none';
+                document.getElementById('micBtn').style.display = 'none';
                 return;
             }
 
             recognition = new SpeechRecognition();
-
             recognition.continuous = false;
             recognition.interimResults = false;
             recognition.lang = 'en-US';
 
-            recognition.onstart = () => {
-                isRecording = true;
-                voiceBtn.classList.add('recording');
-                setEmotion('listening');
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                if (event.results[0].isFinal) {
-                    document.getElementById('messageInput').value = transcript;
-                    sendMessage();
-                    stopRecording();
-                }
-            };
-
             recognition.onerror = (event) => {
                 console.error('Speech recognition error:', event.error);
-                stopRecording();
             };
 
             recognition.onend = () => {
-                stopRecording();
+                // Recognition will be restarted by phone call logic if needed
             };
-
-            voiceBtn.addEventListener('mousedown', startRecording);
-            voiceBtn.addEventListener('mouseup', stopRecording);
-            voiceBtn.addEventListener('mouseleave', stopRecording);
-        }
-
-        function startRecording() {
-            if (!isRecording) {
-                recognition.start();
-            }
-        }
-
-        function stopRecording() {
-            if (isRecording) {
-                isRecording = false;
-                voiceBtn.classList.remove('recording');
-                setEmotion('neutral');
-                recognition.stop();
-            }
         }
 
         // Medical Report Upload
@@ -1094,16 +1090,45 @@
 
                 audioPlayer.src = audioUrl;
 
-                // Auto-play the audio
-                audioPlayer.play().then(() => {
+                // Play the audio if not muted and auto voice is enabled
+                if (autoVoiceMode && !isMuted) {
+                    isSuziSpeaking = true;
+                    const muteBtn = document.getElementById('muteBtn');
+                    const callStatus = document.getElementById('callStatus');
+
+                    // Update UI to show Suzi is speaking
+                    muteBtn.innerHTML = '⏸️';
+                    if (isInCall) {
+                        callStatus.textContent = 'Suzi is speaking...';
+                    }
+
                     setEmotion('speaking');
-                }).catch(error => {
-                    console.error('Audio playback error:', error);
-                    setEmotion('neutral');
-                });
+
+                    audioPlayer.play().then(() => {
+                        // Audio started successfully
+                    }).catch(error => {
+                        console.error('Audio playback error:', error);
+                        isSuziSpeaking = false;
+                        setEmotion('neutral');
+                        if (isInCall) {
+                            callStatus.textContent = 'Call in progress - Listening...';
+                        }
+                    });
+
+                    // Handle audio end
+                    audioPlayer.onended = () => {
+                        isSuziSpeaking = false;
+                        setEmotion('listening');
+                        muteBtn.innerHTML = '🔇';
+                        if (isInCall) {
+                            callStatus.textContent = 'Call in progress - Listening...';
+                        }
+                    };
+                }
 
             } catch (error) {
                 console.error('Audio generation error:', error);
+                isSuziSpeaking = false;
             }
         }
 
@@ -1120,6 +1145,223 @@
                 setEmotion('calm');
             } else {
                 setEmotion('neutral');
+            }
+        }
+
+        // Voice Controls Initialization
+        function initVoiceControls() {
+            const micBtn = document.getElementById('micBtn');
+            const muteBtn = document.getElementById('muteBtn');
+            const autoVoiceCheckbox = document.getElementById('autoVoiceMode');
+            const speakerCheckbox = document.getElementById('speakerMode');
+            const callStatus = document.getElementById('callStatus');
+
+            // Microphone button - toggle call state
+            micBtn.addEventListener('click', () => {
+                if (!isInCall) {
+                    startCall();
+                } else {
+                    endCall();
+                }
+            });
+
+            // Mute button - stop audio and listen
+            muteBtn.addEventListener('click', () => {
+                if (isSuziSpeaking) {
+                    muteSuzi();
+                } else {
+                    unmuteSuzi();
+                }
+            });
+
+            // Auto voice mode toggle
+            autoVoiceCheckbox.addEventListener('change', (e) => {
+                autoVoiceMode = e.target.checked;
+                console.log('Auto Voice Mode:', autoVoiceMode ? 'ON' : 'OFF');
+            });
+
+            // Speaker mode toggle
+            speakerCheckbox.addEventListener('change', (e) => {
+                console.log('Speaker Mode:', e.target.checked ? 'ON' : 'OFF');
+            });
+        }
+
+        // Phone Call Functions
+        function startCall() {
+            const micBtn = document.getElementById('micBtn');
+            const callStatus = document.getElementById('callStatus');
+
+            console.log('📞 Starting call...');
+            isInCall = true;
+            micBtn.classList.add('active');
+            micBtn.innerHTML = '🔴';
+            callStatus.textContent = 'Call in progress - Listening...';
+
+            // Start voice recognition for the call
+            if (recognition) {
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.onresult = handleCallVoiceResult;
+                recognition.onstart = () => {
+                    setEmotion('listening');
+                    isUserSpeaking = true;
+                };
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error:', event.error);
+                    // Restart recognition after a short delay if still in call
+                    if (isInCall) {
+                        setTimeout(() => {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Recognition restart failed:', e);
+                            }
+                        }, 1000);
+                    }
+                };
+                recognition.onend = () => {
+                    // Restart recognition if still in call
+                    if (isInCall && !isSuziSpeaking) {
+                        setTimeout(() => {
+                            try {
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Recognition restart failed:', e);
+                            }
+                        }, 500);
+                    }
+                };
+
+                try {
+                    recognition.start();
+                } catch (error) {
+                    console.error('Error starting voice recognition:', error);
+                }
+            }
+
+            // Set avatar to listening state
+            setEmotion('listening');
+        }
+
+        function endCall() {
+            const micBtn = document.getElementById('micBtn');
+            const callStatus = document.getElementById('callStatus');
+
+            console.log('📞 Ending call...');
+            isInCall = false;
+            micBtn.classList.remove('active');
+            micBtn.innerHTML = '🎤';
+            callStatus.textContent = 'Click microphone to start conversation';
+
+            // Stop voice recognition
+            if (recognition) {
+                recognition.stop();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.onresult = handleNormalVoiceResult;
+            }
+
+            // Stop any playing audio
+            if (audioPlayer && !audioPlayer.paused) {
+                audioPlayer.pause();
+            }
+
+            // Reset states
+            isUserSpeaking = false;
+            isSuziSpeaking = false;
+            isMuted = false;
+
+            // Update mute button
+            const muteBtn = document.getElementById('muteBtn');
+            muteBtn.classList.remove('muted');
+            muteBtn.innerHTML = '🔇';
+
+            // Set avatar to neutral
+            setEmotion('neutral');
+        }
+
+        function muteSuzi() {
+            const muteBtn = document.getElementById('muteBtn');
+            const callStatus = document.getElementById('callStatus');
+
+            console.log('🔇 Muting Suzi...');
+            isMuted = true;
+
+            // Stop any playing audio
+            if (audioPlayer && !audioPlayer.paused) {
+                audioPlayer.pause();
+            }
+
+            // Update UI
+            muteBtn.classList.add('muted');
+            muteBtn.innerHTML = '🔊';
+            callStatus.textContent = 'Suzi muted - You can speak now';
+
+            // Set avatar to listening state
+            setEmotion('listening');
+            isSuziSpeaking = false;
+        }
+
+        function unmuteSuzi() {
+            const muteBtn = document.getElementById('muteBtn');
+            const callStatus = document.getElementById('callStatus');
+
+            console.log('🔊 Unmuting Suzi...');
+            isMuted = false;
+
+            // Update UI
+            muteBtn.classList.remove('muted');
+            muteBtn.innerHTML = '🔇';
+            callStatus.textContent = 'Call in progress - Listening...';
+        }
+
+        function handleCallVoiceResult(event) {
+            let finalTranscript = '';
+            let interimTranscript = '';
+
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            // Update input field for visual feedback
+            const messageInput = document.getElementById('messageInput');
+            if (interimTranscript) {
+                messageInput.value = finalTranscript + interimTranscript;
+            }
+
+            // Process final results
+            if (finalTranscript.trim()) {
+                messageInput.value = finalTranscript.trim();
+
+                // Send message and continue listening
+                setTimeout(() => {
+                    sendMessage();
+
+                    // Continue listening if still in call
+                    if (isInCall) {
+                        setTimeout(() => {
+                            try {
+                                recognition.start();
+                            } catch (error) {
+                                console.log('Recognition already running');
+                            }
+                        }, 1000);
+                    }
+                }, 500);
+            }
+        }
+
+        function handleNormalVoiceResult(event) {
+            const transcript = event.results[0][0].transcript;
+            if (event.results[0].isFinal) {
+                document.getElementById('messageInput').value = transcript;
+                sendMessage();
+                stopRecording();
             }
         }
 

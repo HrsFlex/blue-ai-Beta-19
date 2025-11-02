@@ -1,0 +1,1733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suzi - Enhanced Mental Health Companion</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>">
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js"
+        }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .header-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .main-content {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chat-sessions-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .session-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .session-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .session-item.active {
+            background: rgba(76, 195, 247, 0.3);
+            border-color: #4fc3f7;
+        }
+
+        .session-time {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .session-preview {
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .stats-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .stat-item {
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .avatar-section {
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        #avatar-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .chat-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        .context-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 15px;
+            backdrop-filter: blur(15px);
+            max-height: 120px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .context-panel h3 {
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .context-item {
+            background: rgba(76, 195, 247, 0.1);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            border-left: 3px solid #4fc3f7;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            animation: messageSlide 0.3s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            background: rgba(76, 195, 247, 0.2);
+            padding: 14px 18px;
+            border-radius: 20px;
+            max-width: 75%;
+            word-wrap: break-word;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.suzi .message-content {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .audio-player {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 1.3rem;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .control-btn:active {
+            transform: scale(0.95);
+        }
+
+        .control-btn.active {
+            background: #4fc3f7;
+            color: #1a237e;
+        }
+
+        .progress-container {
+            flex: 1;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4fc3f7, #29b6f6);
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .time-display {
+            font-size: 0.85rem;
+            margin: 0 10px;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .volume-slider {
+            width: 120px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4fc3f7;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 15px;
+            align-items: stretch;
+        }
+
+        .message-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
+            padding: 14px 24px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            backdrop-filter: blur(15px);
+            transition: all 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #4fc3f7;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .message-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .send-btn {
+            background: #4fc3f7;
+            border: none;
+            border-radius: 25px;
+            padding: 14px 28px;
+            color: #1a237e;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .send-btn:hover {
+            background: #29b6f6;
+            transform: translateY(-2px);
+        }
+
+        .send-btn:active {
+            transform: translateY(0);
+        }
+
+        .send-btn:disabled {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .voice-controls {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .voice-btn {
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            border: none;
+            border-radius: 50%;
+            width: 90px;
+            height: 90px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            transition: all 0.3s ease;
+            margin: 0 auto;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .voice-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+        }
+
+        .voice-btn.recording {
+            background: linear-gradient(135deg, #ff5252, #f44336);
+            animation: pulse 1.5s infinite;
+        }
+
+        .voice-btn.speaking {
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            animation: wave 2s infinite ease-in-out;
+        }
+
+        .voice-btn.auto-playing {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        .voice-status {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .voice-mode-indicator {
+            margin-top: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .voice-mode-indicator.active {
+            background: rgba(76, 195, 247, 0.3);
+            border-color: #4fc3f7;
+            animation: modeGlow 2s ease-in-out infinite;
+        }
+
+        @keyframes modeGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(76, 195, 247, 0.3); }
+            50% { box-shadow: 0 0 15px rgba(76, 195, 247, 0.6); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes wave {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(3deg); }
+            75% { transform: rotate(-3deg); }
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .quick-action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 8px 16px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .quick-action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .upload-section {
+            text-align: center;
+        }
+
+        .upload-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 12px 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            backdrop-filter: blur(15px);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .upload-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .loading-indicator {
+            display: none;
+            text-align: center;
+            padding: 15px;
+            font-size: 0.95rem;
+            color: #ffd54f;
+            background: rgba(255, 215, 79, 0.1);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .loading-indicator.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Voice detection indicator */
+        .voice-detection {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            display: none;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .voice-detection.active {
+            display: flex;
+        }
+
+        .voice-dot {
+            width: 8px;
+            height: 8px;
+            background: #ff5252;
+            border-radius: 50%;
+            animation: voicePulse 1s infinite;
+        }
+
+        @keyframes voicePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .sidebar {
+                width: 240px;
+            }
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                padding: 15px;
+            }
+
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .avatar-section {
+                height: 250px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px 20px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .input-section {
+                flex-direction: column;
+            }
+
+            .voice-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <div>
+                    <h1>🌸 Suzi</h1>
+                    <div class="subtitle">Enhanced Mental Health Companion</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn" id="newChatBtn">💬 New Chat</button>
+                <button class="header-btn" id="continuousVoiceBtn">🎤 Continuous Voice</button>
+                <button class="header-btn" id="autoPlayBtn">🔊 Auto-Play: ON</button>
+                <button class="header-btn" id="clearHistoryBtn">🗑️ Clear History</button>
+                <button class="header-btn" id="settingsBtn">⚙️ Settings</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="stats-container">
+                    <h3>📊 Session Stats</h3>
+                    <div class="stat-item">
+                        <div class="stat-value" id="messageCount">0</div>
+                        <div class="stat-label">Messages</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="sessionCount">0</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3>💬 Chat History</h3>
+                    <div class="chat-sessions-list" id="chatSessionsList">
+                        <div class="session-item active">
+                            <div class="session-time">Current Session</div>
+                            <div class="session-preview">Start a conversation...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div class="avatar-section">
+                    <div id="avatar-container"></div>
+                    <div class="voice-detection" id="voiceDetection">
+                        <div class="voice-dot"></div>
+                        <span>Voice Detected</span>
+                    </div>
+                </div>
+
+                <div class="chat-section">
+                    <div class="context-panel" id="context-panel" style="display: none;">
+                        <h3>📚 Knowledge Sources</h3>
+                        <div id="knowledge-sources"></div>
+                    </div>
+
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chat-messages"></div>
+                    </div>
+
+                    <div class="controls-container">
+                        <div class="audio-player">
+                            <div class="player-controls">
+                                <button class="control-btn" id="playPauseBtn" title="Play/Pause">▶️</button>
+                                <button class="control-btn" id="stopBtn" title="Stop">⏹️</button>
+                                <div class="progress-container">
+                                    <div class="progress-bar" id="progressBar">
+                                        <div class="progress-fill" id="progressFill"></div>
+                                    </div>
+                                </div>
+                                <span class="time-display" id="timeDisplay">0:00</span>
+                            </div>
+                            <div class="volume-control">
+                                <span>🔊</span>
+                                <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="70">
+                                <span id="volumeValue">70%</span>
+                            </div>
+                            <audio id="audioPlayer" style="display: none;"></audio>
+                        </div>
+
+                        <div class="input-section">
+                            <input type="text" class="message-input" id="messageInput" placeholder="Talk to Suzi about your feelings..." maxlength="500">
+                            <button class="send-btn" id="sendBtn" title="Send Message">
+                                <span>Send</span>
+                                <span>📤</span>
+                            </button>
+                        </div>
+
+                        <div class="voice-controls">
+                            <button class="voice-btn" id="voiceBtn" title="Click to start/stop voice">
+                                🎤
+                            </button>
+                            <div class="voice-status" id="voiceStatus">Click to start voice conversation</div>
+                            <div class="voice-mode-indicator" id="voiceModeIndicator">
+                                <span id="voiceModeText">Push-to-Talk Mode</span>
+                            </div>
+
+                            <div class="quick-actions">
+                                <button class="quick-action-btn" onclick="sendQuickMessage('I feel anxious')">😰 I feel anxious</button>
+                                <button class="quick-action-btn" onclick="sendQuickMessage('I need to relax')">😌 I need to relax</button>
+                                <button class="quick-action-btn" onclick="sendQuickMessage('I feel sad')">😢 I feel sad</button>
+                                <button class="quick-action-btn" onclick="sendQuickMessage('I feel happy')">😊 I feel happy</button>
+                            </div>
+                        </div>
+
+                        <div class="upload-section">
+                            <button class="upload-btn" id="uploadReportBtn">
+                                📄 Upload Medical Report
+                            </button>
+                            <input type="file" id="medicalReportInput" accept=".pdf" style="display: none;">
+                        </div>
+
+                        <div class="loading-indicator" id="loadingIndicator">
+                            ✨ Suzi is thinking...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Three.js as ES module
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // Three.js Avatar System
+        let scene, camera, renderer, avatar, mixer;
+        let clock = new THREE.Clock();
+        let isLoaded = false;
+
+        // Animation variables
+        let blinkAnimation = null;
+        let talkAnimation = null;
+        let currentEmotion = 'neutral';
+
+        // Audio player variables
+        let audioPlayer;
+        let isPlaying = false;
+        let currentTime = 0;
+        let duration = 0;
+
+        // Chat variables
+        let conversationHistory = [];
+        let isRecording = false;
+        let currentSessionId = generateSessionId();
+        let messageCount = 0;
+        let voiceDetectionTimer = null;
+
+        // Speech Recognition
+        let recognition = null;
+        let isUserSpeaking = false;
+        let isContinuousVoiceMode = false;
+        let autoPlayAudio = true; // Auto-play Suzi's responses
+
+        // Initialize application
+        document.addEventListener('DOMContentLoaded', function() {
+            initAvatar();
+            initAudioPlayer();
+            initChatInterface();
+            initVoiceRecognition();
+            initMedicalUpload();
+            initChatHistory();
+            loadChatSessions();
+        });
+
+        function generateSessionId() {
+            return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        }
+
+        // Voice Detection (improved)
+        function detectUserSpeaking() {
+            if (recognition && isRecording) {
+                const voiceDetection = document.getElementById('voiceDetection');
+
+                // Simple heuristic: if we're recording, assume user might be speaking
+                voiceDetection.classList.add('active');
+
+                // Clear existing timer
+                if (voiceDetectionTimer) {
+                    clearTimeout(voiceDetectionTimer);
+                }
+
+                // Set timer to hide indicator after 2 seconds of inactivity
+                voiceDetectionTimer = setTimeout(() => {
+                    voiceDetection.classList.remove('active');
+                }, 2000);
+            }
+        }
+
+        // Avatar System (same as before, but enhanced)
+        function initAvatar() {
+            const avatarContainer = document.getElementById('avatar-container');
+            const avatarSection = document.querySelector('.avatar-section');
+
+            // Scene setup
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, avatarSection.offsetWidth / avatarSection.offsetHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({
+                antialias: true,
+                alpha: true
+            });
+            renderer.setSize(avatarSection.offsetWidth, avatarSection.offsetHeight);
+            renderer.setClearColor(0x000000, 0);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            avatarContainer.appendChild(renderer.domElement);
+
+            // Enhanced lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(1, 1, 1);
+            scene.add(directionalLight);
+
+            const pointLight = new THREE.PointLight(0xffffff, 1);
+            pointLight.position.set(0, 2, 1);
+            scene.add(pointLight);
+
+            // Load avatar
+            loadAvatar();
+            animate();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function loadAvatar() {
+            const loader = new GLTFLoader();
+
+            loader.load(
+                '/static/model.glb',
+                function(gltf) {
+                    avatar = gltf.scene;
+                    avatar.position.set(0, 0, 0);
+                    avatar.scale.set(1, 1, 1);
+                    setupAvatarMaterials();
+                    scene.add(avatar);
+                    setupAnimations();
+                    isLoaded = true;
+                    console.log('✅ Avatar loaded successfully');
+                },
+                function(error) {
+                    console.error('❌ Error loading avatar:', error);
+                    createFallbackAvatar();
+                }
+            );
+        }
+
+        function setupAvatarMaterials() {
+            avatar.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                    const material = child.material;
+                    if (material) {
+                        material.roughness = 0.7;
+                        material.metalness = 0.2;
+                        material.envMapIntensity = 0.3;
+                        if (material.map) material.map.colorSpace = THREE.SRGBColorSpace;
+                        if (material.normalMap) material.normalMap.colorSpace = THREE.NoColorSpace;
+                        if (material.roughnessMap) material.roughnessMap.colorSpace = THREE.NoColorSpace;
+                        if (material.metalnessMap) material.metalnessMap.colorSpace = THREE.NoColorSpace;
+                        if (material.emissiveMap) material.emissiveMap.colorSpace = THREE.SRGBColorSpace;
+                        if (material.occlusionMap) material.occlusionMap.colorSpace = THREE.NoColorSpace;
+                    }
+                }
+            });
+        }
+
+        function createFallbackAvatar() {
+            const geometry = new THREE.SphereGeometry(0.5, 32, 32);
+            const material = new THREE.MeshPhongMaterial({
+                color: 0xffb6c1,
+                emissive: 0x4444ff,
+                shininess: 100
+            });
+            avatar = new THREE.Mesh(geometry, material);
+            avatar.position.set(0, 0, 0);
+            scene.add(avatar);
+        }
+
+        function setupAnimations() {
+            fetch('/static/blendDataBlink.json')
+                .then(response => response.json())
+                .then(blinkData => {
+                    blinkAnimation = blinkData;
+                    console.log('✅ Animation data loaded');
+                })
+                .catch(error => {
+                    console.log('⚠️ No animation data found:', error);
+                });
+            createIdleAnimation();
+        }
+
+        function createIdleAnimation() {
+            mixer = new THREE.AnimationMixer(avatar);
+            const times = [0, 1, 2, 3, 4];
+            const values = [0, 0.02, 0, -0.02, 0];
+            const track = new THREE.NumberKeyframeTrack(avatar.position + '.y', times, values);
+            const clip = new THREE.AnimationClip('idle', 4, [track]);
+            const action = mixer.clipAction(clip);
+            action.setLoop(THREE.LoopRepeat, Infinity);
+            mixer.timeScale = 1;
+            action.play();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (!isLoaded) return;
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+            if (avatar) avatar.rotation.y += delta * 0.5;
+            if (avatar && camera) camera.lookAt(avatar.position);
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const avatarSection = document.querySelector('.avatar-section');
+            camera.aspect = avatarSection.offsetWidth / avatarSection.offsetHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(avatarSection.offsetWidth, avatarSection.offsetHeight);
+        }
+
+        // Enhanced Audio Player
+        function initAudioPlayer() {
+            audioPlayer = document.getElementById('audioPlayer');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            const timeDisplay = document.getElementById('timeDisplay');
+            const volumeSlider = document.getElementById('volumeSlider');
+            const volumeValue = document.getElementById('volumeValue');
+
+            playPauseBtn.addEventListener('click', togglePlayPause);
+            stopBtn.addEventListener('click', stopAudio);
+            progressBar.addEventListener('click', seekAudio);
+            volumeSlider.addEventListener('input', (e) => {
+                updateVolume();
+                volumeValue.textContent = e.target.value + '%';
+            });
+
+            audioPlayer.addEventListener('timeupdate', updateProgress);
+            audioPlayer.addEventListener('loadedmetadata', updateDuration);
+            audioPlayer.addEventListener('ended', onAudioEnded);
+        }
+
+        function togglePlayPause() {
+            if (!audioPlayer.src || audioPlayer.src === '') return;
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            if (audioPlayer.paused) {
+                audioPlayer.play();
+                playPauseBtn.textContent = '⏸️';
+                playPauseBtn.classList.add('active');
+                isPlaying = true;
+            } else {
+                audioPlayer.pause();
+                playPauseBtn.textContent = '▶️';
+                playPauseBtn.classList.remove('active');
+                isPlaying = false;
+            }
+        }
+
+        function stopAudio() {
+            if (audioPlayer.src) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+                updateProgress();
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                playPauseBtn.textContent = '▶️';
+                playPauseBtn.classList.remove('active');
+                isPlaying = false;
+            }
+        }
+
+        function seekAudio(e) {
+            if (audioPlayer.src && audioPlayer.duration) {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                audioPlayer.currentTime = percent * audioPlayer.duration;
+            }
+        }
+
+        function updateProgress() {
+            const progressFill = document.getElementById('progressFill');
+            const timeDisplay = document.getElementById('timeDisplay');
+            if (audioPlayer.duration) {
+                const percent = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progressFill.style.width = percent + '%';
+                const currentMinutes = Math.floor(audioPlayer.currentTime / 60);
+                const currentSeconds = Math.floor(audioPlayer.currentTime % 60);
+                const durationMinutes = Math.floor(audioPlayer.duration / 60);
+                const durationSeconds = Math.floor(audioPlayer.duration % 60);
+                timeDisplay.textContent = `${currentMinutes}:${currentSeconds.toString().padStart(2, '0')}/${durationMinutes}:${durationSeconds.toString().padStart(2, '0')}`;
+            } else {
+                progressFill.style.width = '0%';
+                timeDisplay.textContent = '0:00';
+            }
+        }
+
+        function updateDuration() {
+            duration = audioPlayer.duration;
+            updateProgress();
+        }
+
+        function onAudioEnded() {
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const voiceBtn = document.getElementById('voiceBtn');
+
+            playPauseBtn.textContent = '▶️';
+            playPauseBtn.classList.remove('active');
+            isPlaying = false;
+            updateProgress();
+            setEmotion('neutral');
+
+            // Clear all voice button states
+            voiceBtn.classList.remove('speaking', 'auto-playing');
+            updateVoiceStatus('Audio playback complete');
+        }
+
+        function updateVolume() {
+            const volumeSlider = document.getElementById('volumeSlider');
+            audioPlayer.volume = volumeSlider.value / 100;
+        }
+
+        // Expression control
+        function setEmotion(emotion) {
+            currentEmotion = emotion;
+            updateAvatarEmotion(emotion);
+            if (avatar) {
+                const emotionColors = {
+                    'happy': '#ffeb3b',
+                    'sad': '#64b5f6',
+                    'neutral': '#81c784',
+                    'excited': '#ff8a65',
+                    'listening': '#ff9800',
+                    'speaking': '#4caf50'
+                };
+                avatar.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        child.material.emissive = new THREE.Color(emotionColors[emotion] || '#81c784');
+                    }
+                });
+            }
+        }
+
+        function updateAvatarEmotion(emotion) {
+            if (blinkAnimation && emotion === 'happy') {
+                animateExpression(emotion);
+            }
+        }
+
+        function animateExpression(emotion) {
+            if (avatar && mixer) {
+                console.log(`Animating ${emotion} expression`);
+            }
+        }
+
+        // Enhanced Chat Interface
+        function initChatInterface() {
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            // Welcome message
+            setTimeout(() => {
+                addMessage('suzi', 'Hey! I\'m Suzi, your mental health companion. I provide evidence-based support and keep responses under 60 words. How can I help you today? 💚');
+            }, 1000);
+        }
+
+        function addMessage(sender, text) {
+            const chatMessages = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'message-content';
+            contentDiv.textContent = text;
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'message-time';
+            timeDiv.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            contentDiv.appendChild(timeDiv);
+            messageDiv.appendChild(contentDiv);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+            // Update message count
+            messageCount++;
+            document.getElementById('messageCount').textContent = messageCount;
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            const message = messageInput.value.trim();
+            if (!message) return;
+
+            // Disable controls
+            sendBtn.disabled = true;
+            messageInput.disabled = true;
+            loadingIndicator.classList.add('active');
+
+            // Add user message
+            addMessage('user', message);
+            conversationHistory.push({ role: 'user', content: message });
+
+            try {
+                const response = await fetch('http://127.0.0.1:8001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        history: conversationHistory,
+                        session_id: currentSessionId
+                    })
+                });
+
+                const data = await response.json();
+                conversationHistory = data.history || [];
+                currentSessionId = data.session_id || currentSessionId;
+
+                // Add Suzi's response
+                addMessage('suzi', data.message);
+
+                // Generate and play audio
+                if (data.message) {
+                    await generateAudio(data.message);
+                }
+
+                // Update context panel
+                if (data.knowledge_sources && data.knowledge_sources.length > 0) {
+                    updateContextPanel(data.knowledge_sources);
+                }
+
+                // Update emotion
+                analyzeAndUpdateEmotion(data.message);
+
+                // Update chat sessions
+                loadChatSessions();
+
+            } catch (error) {
+                console.error('Error sending message:', error);
+                addMessage('suzi', 'I\'m having trouble connecting right now. Please try again in a moment.');
+            } finally {
+                // Re-enable controls
+                sendBtn.disabled = false;
+                messageInput.disabled = false;
+                loadingIndicator.classList.remove('active');
+                messageInput.value = '';
+            }
+        }
+
+        function sendQuickMessage(message) {
+            document.getElementById('messageInput').value = message;
+            sendMessage();
+        }
+
+        // Enhanced Voice Recognition with both push-to-talk and continuous modes
+        function initVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const voiceBtn = document.getElementById('voiceBtn');
+            const voiceStatus = document.getElementById('voiceStatus');
+            const continuousVoiceBtn = document.getElementById('continuousVoiceBtn');
+            const autoPlayBtn = document.getElementById('autoPlayBtn');
+
+            if (!SpeechRecognition) {
+                console.log('❌ Speech recognition not supported');
+                voiceBtn.style.display = 'none';
+                continuousVoiceBtn.style.display = 'none';
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                voiceBtn.classList.add('recording');
+                updateVoiceStatus('Listening... Speak now');
+                setEmotion('listening');
+                detectUserSpeaking();
+            };
+
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                // Update input field with current speech
+                if (finalTranscript || interimTranscript) {
+                    document.getElementById('messageInput').value = finalTranscript || interimTranscript;
+                }
+
+                // Auto-stop when user stops speaking (only in push-to-talk mode)
+                if (finalTranscript && finalTranscript.trim() && !isContinuousVoiceMode) {
+                    setTimeout(() => {
+                        if (isRecording && !isUserSpeaking) {
+                            stopRecording();
+                            // Auto-send the message
+                            if (finalTranscript.trim()) {
+                                sendMessage();
+                            }
+                        }
+                    }, 1500); // Wait 1.5 seconds of silence
+                }
+
+                // In continuous mode, auto-send when we have a complete sentence
+                if (finalTranscript && finalTranscript.trim() && isContinuousVoiceMode) {
+                    if (finalTranscript.match(/[.!?]$/)) { // End of sentence
+                        setTimeout(() => {
+                            if (finalTranscript.trim()) {
+                                sendMessage();
+                            }
+                        }, 500);
+                    }
+                }
+
+                detectUserSpeaking();
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                updateVoiceStatus(`Error: ${event.error}`);
+                stopRecording();
+            };
+
+            recognition.onend = () => {
+                if (isRecording && !isContinuousVoiceMode) {
+                    stopRecording();
+                } else if (isContinuousVoiceMode) {
+                    // Restart continuous mode
+                    setTimeout(() => {
+                        if (isContinuousVoiceMode) {
+                            recognition.start();
+                        }
+                    }, 1000);
+                }
+            };
+
+            // Voice button events - toggle behavior based on mode
+            voiceBtn.addEventListener('click', () => {
+                if (isContinuousVoiceMode) {
+                    toggleContinuousVoice();
+                } else {
+                    if (isRecording) {
+                        stopRecording();
+                    } else {
+                        startRecording();
+                    }
+                }
+            });
+
+            // Continuous voice mode toggle
+            continuousVoiceBtn.addEventListener('click', toggleContinuousVoice);
+
+            // Auto-play toggle
+            autoPlayBtn.addEventListener('click', toggleAutoPlay);
+
+            // Touch support for mobile
+            voiceBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (!isContinuousVoiceMode && !isRecording) {
+                    startRecording();
+                }
+            });
+            voiceBtn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (!isContinuousVoiceMode && isRecording) {
+                    stopRecording();
+                }
+            });
+        }
+
+        function startRecording() {
+            if (!isRecording) {
+                isUserSpeaking = false;
+                recognition.start();
+            }
+        }
+
+        function stopRecording() {
+            if (isRecording) {
+                isRecording = false;
+                voiceBtn.classList.remove('recording');
+                updateVoiceStatus('Click to start voice conversation');
+                setEmotion('neutral');
+                recognition.stop();
+
+                // Hide voice detection
+                document.getElementById('voiceDetection').classList.remove('active');
+                if (voiceDetectionTimer) {
+                    clearTimeout(voiceDetectionTimer);
+                }
+            }
+        }
+
+        function toggleContinuousVoice() {
+            isContinuousVoiceMode = !isContinuousVoiceMode;
+            const voiceBtn = document.getElementById('voiceBtn');
+            const continuousVoiceBtn = document.getElementById('continuousVoiceBtn');
+            const voiceModeText = document.getElementById('voiceModeText');
+            const voiceModeIndicator = document.getElementById('voiceModeIndicator');
+
+            if (isContinuousVoiceMode) {
+                continuousVoiceBtn.textContent = '🔴 Stop Voice';
+                continuousVoiceBtn.style.background = 'rgba(244, 67, 54, 0.8)';
+                voiceBtn.style.background = 'linear-gradient(135deg, #4caf50, #45a049)';
+                voiceModeText.textContent = 'Continuous Voice Mode';
+                voiceModeIndicator.classList.add('active');
+                updateVoiceStatus('Continuous listening enabled...');
+
+                // Start continuous listening
+                if (!isRecording) {
+                    recognition.start();
+                }
+            } else {
+                continuousVoiceBtn.textContent = '🎤 Continuous Voice';
+                continuousVoiceBtn.style.background = 'rgba(255, 255, 255, 0.2)';
+                voiceBtn.style.background = 'linear-gradient(135deg, #ff6b6b, #4ecdc4)';
+                voiceModeText.textContent = 'Push-to-Talk Mode';
+                voiceModeIndicator.classList.remove('active');
+                updateVoiceStatus('Click to start voice conversation');
+
+                // Stop continuous listening
+                if (isRecording) {
+                    stopRecording();
+                }
+            }
+        }
+
+        function toggleAutoPlay() {
+            autoPlayAudio = !autoPlayAudio;
+            const autoPlayBtn = document.getElementById('autoPlayBtn');
+            autoPlayBtn.textContent = autoPlayAudio ? '🔊 Auto-Play: ON' : '🔇 Auto-Play: OFF';
+            autoPlayBtn.style.background = autoPlayAudio ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 255, 255, 0.2)';
+        }
+
+        function updateVoiceStatus(text) {
+            document.getElementById('voiceStatus').textContent = text;
+        }
+
+        // Chat History Management
+        function initChatHistory() {
+            document.getElementById('newChatBtn').addEventListener('click', startNewChat);
+            document.getElementById('clearHistoryBtn').addEventListener('click', clearAllHistory);
+            document.getElementById('settingsBtn').addEventListener('click', showSettings);
+        }
+
+        function startNewChat() {
+            // Save current session if it has messages
+            if (conversationHistory.length > 0) {
+                saveChatSession(currentSessionId, conversationHistory);
+            }
+
+            // Start new session
+            currentSessionId = generateSessionId();
+            conversationHistory = [];
+            document.getElementById('chat-messages').innerHTML = '';
+            addMessage('suzi', 'Hey! I\'m Suzi, your mental health companion. How can I help you today? 💚');
+            loadChatSessions();
+        }
+
+        async function loadChatSessions() {
+            try {
+                const response = await fetch('http://127.0.0.1:8001/chat-sessions');
+                const data = await response.json();
+
+                const sessionsList = document.getElementById('chatSessionsList');
+                sessionsList.innerHTML = '';
+
+                // Add current session
+                const currentSession = document.createElement('div');
+                currentSession.className = 'session-item active';
+                currentSession.innerHTML = `
+                    <div class="session-time">Current Session</div>
+                    <div class="session-preview">${conversationHistory.length > 0 ? conversationHistory[conversationHistory.length - 1].content.substring(0, 30) + '...' : 'Start a conversation...'}</div>
+                `;
+                currentSession.addEventListener('click', () => {
+                    // Do nothing for current session
+                });
+                sessionsList.appendChild(currentSession);
+
+                // Add past sessions
+                data.sessions.forEach(session => {
+                    const sessionItem = document.createElement('div');
+                    sessionItem.className = 'session-item';
+                    const time = new Date(session.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    sessionItem.innerHTML = `
+                        <div class="session-time">${time}</div>
+                        <div class="session-preview">${session.last_message[0]?.content?.substring(0, 30) + '...' || 'No messages'}</div>
+                    `;
+                    sessionItem.addEventListener('click', () => loadChatSession(session.session_id));
+                    sessionsList.appendChild(sessionItem);
+                });
+
+                // Update session count
+                document.getElementById('sessionCount').textContent = data.sessions.length + 1;
+
+            } catch (error) {
+                console.error('Error loading chat sessions:', error);
+            }
+        }
+
+        async function loadChatSession(sessionId) {
+            try {
+                const response = await fetch(`http://127.0.0.1:8001/chat-session/${sessionId}`);
+                const data = await response.json();
+
+                // Save current session if it has messages
+                if (conversationHistory.length > 0) {
+                    saveChatSession(currentSessionId, conversationHistory);
+                }
+
+                // Load selected session
+                currentSessionId = sessionId;
+                conversationHistory = data.messages;
+
+                // Update UI
+                const chatMessages = document.getElementById('chat-messages');
+                chatMessages.innerHTML = '';
+
+                data.messages.forEach(msg => {
+                    addMessage(msg.role === 'user' ? 'user' : 'suzi', msg.content);
+                });
+
+                loadChatSessions();
+
+            } catch (error) {
+                console.error('Error loading chat session:', error);
+            }
+        }
+
+        async function clearAllHistory() {
+            if (confirm('Are you sure you want to clear all chat history? This cannot be undone.')) {
+                try {
+                    await fetch('http://127.0.0.1:8001/clear-all-sessions', { method: 'DELETE' });
+                    startNewChat();
+                } catch (error) {
+                    console.error('Error clearing history:', error);
+                }
+            }
+        }
+
+        function showSettings() {
+            alert('Settings panel coming soon! 🎛️');
+        }
+
+        async function saveChatSession(sessionId, messages) {
+            try {
+                await fetch('http://127.0.0.1:8001/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: '',
+                        history: messages,
+                        session_id: sessionId
+                    })
+                });
+            } catch (error) {
+                console.error('Error saving session:', error);
+            }
+        }
+
+        // Medical Report Upload
+        function initMedicalUpload() {
+            const uploadBtn = document.getElementById('uploadReportBtn');
+            const medicalInput = document.getElementById('medicalReportInput');
+
+            uploadBtn.addEventListener('click', () => {
+                medicalInput.click();
+            });
+
+            medicalInput.addEventListener('change', async (event) => {
+                const file = event.target.files[0];
+                if (!file || !file.type.includes('pdf')) {
+                    alert('Please select a PDF file');
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const response = await fetch('http://127.0.0.1:8001/upload-medical-report', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    alert(`✅ ${data.message}\nTotal reports: ${data.total_user_reports}`);
+                    medicalInput.value = '';
+
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    alert('❌ Upload failed. Please try again.');
+                }
+            });
+        }
+
+        // Audio generation with auto-play functionality
+        async function generateAudio(text) {
+            try {
+                // Don't generate audio if text is empty
+                if (!text || text.trim().length === 0) return;
+
+                const response = await fetch('http://127.0.0.1:8001/process-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayer.src = audioUrl;
+
+                // Auto-play if enabled
+                if (autoPlayAudio) {
+                    // Show visual feedback that audio is about to play
+                    const voiceBtn = document.getElementById('voiceBtn');
+                    voiceBtn.classList.add('auto-playing');
+                    updateVoiceStatus('🔊 Playing response...');
+
+                    // Wait a brief moment before playing to allow UI to update
+                    setTimeout(() => {
+                        audioPlayer.play().then(() => {
+                            setEmotion('speaking');
+                            voiceBtn.classList.add('speaking');
+                            voiceBtn.classList.remove('auto-playing');
+                            console.log('🔊 Auto-playing Suzi\'s response');
+                        }).catch(error => {
+                            console.error('Audio playback error:', error);
+                            setEmotion('neutral');
+                            voiceBtn.classList.remove('auto-playing');
+                            voiceBtn.classList.remove('speaking');
+                            updateVoiceStatus('Audio ready - click play button ▶️');
+                        });
+                    }, 500);
+                } else {
+                    // Just load the audio but don't auto-play
+                    setEmotion('neutral');
+                    updateVoiceStatus('🔇 Audio ready - click play button ▶️');
+                    console.log('🔇 Audio ready (auto-play disabled)');
+                }
+
+            } catch (error) {
+                console.error('Audio generation error:', error);
+                setEmotion('neutral');
+            }
+        }
+
+        // Analyze text content and update avatar emotion
+        function analyzeAndUpdateEmotion(text) {
+            const textLower = text.toLowerCase();
+            if (textLower.includes('happy') || textLower.includes('joy') || textLower.includes('excited')) {
+                setEmotion('happy');
+            } else if (textLower.includes('sad') || textLower.includes('worried') || textLower.includes('anxious')) {
+                setEmotion('sad');
+            } else if (textLower.includes('relax') || textLower.includes('calm') || textLower.includes('peaceful')) {
+                setEmotion('calm');
+            } else {
+                setEmotion('neutral');
+            }
+        }
+
+        // Context Panel Updates
+        function updateContextPanel(knowledgeSources) {
+            const contextPanel = document.getElementById('context-panel');
+            const knowledgeSourcesDiv = document.getElementById('knowledge-sources');
+
+            knowledgeSourcesDiv.innerHTML = '';
+            knowledgeSources.forEach((source, index) => {
+                const item = document.createElement('div');
+                item.className = 'context-item';
+                item.innerHTML = `📖 ${source.filename || 'Reference Material'}${source.score ? ` (${(source.score * 100).toFixed(1)}% match)` : ''}`;
+                knowledgeSourcesDiv.appendChild(item);
+            });
+            contextPanel.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

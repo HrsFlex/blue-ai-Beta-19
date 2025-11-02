@@ -1,0 +1,14 @@
+{
+  "session_id": "20251102_061341",
+  "timestamp": "2025-11-02T06:13:42.542263",
+  "messages": [
+    {
+      "role": "user",
+      "content": "how are you"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey there! I'm doing okay, thanks for asking. How are YOU holding up today? Anything you want to chat about?\n"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "session_id": "session_1762043571863_83viwp3gc",
+  "timestamp": "2025-11-02T06:03:11.644253",
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi there"
+    },
+    {
+      "role": "user",
+      "content": "hi there"
+    },
+    {
+      "role": "assistant",
+      "content": "Hey there! I understand that life can get overwhelming sometimes, and I'm here to support you.\n\nIf you're feeling anxious, remember it's a normal experience. Focus on recognizing the physical symptoms like a racing heart or tight chest. Knowing what's happening can help you feel more in control. You're not alone!\n"
+    }
+  ]
+}
