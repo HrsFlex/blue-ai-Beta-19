@@ -646,6 +646,9 @@
                 function(gltf) {
                     avatar = gltf.scene;
 
+                    // Set avatar name for animation system
+                    avatar.name = 'SuziAvatar';
+
                     // Position avatar
                     avatar.position.set(0, 0, 0);
                     avatar.scale.set(1, 1, 1);
@@ -661,6 +664,13 @@
 
                     isLoaded = true;
                     console.log('✅ Avatar loaded successfully');
+                },
+                function(progress) {
+                    // Handle loading progress
+                    if (progress.lengthComputable) {
+                        const percent = (progress.loaded / progress.total) * 100;
+                        console.log(`Loading avatar: ${percent.toFixed(1)}%`);
+                    }
                 },
                 function(error) {
                     console.error('❌ Error loading avatar:', error);
@@ -716,8 +726,14 @@
                 shininess: 100
             });
             avatar = new THREE.Mesh(geometry, material);
+            avatar.name = 'SuziAvatar'; // Set name for animation system
             avatar.position.set(0, 0, 0);
             scene.add(avatar);
+
+            // Setup animations for fallback avatar as well
+            setupAnimations();
+            isLoaded = true;
+            console.log('✅ Fallback avatar created successfully');
         }
 
         function setupAnimations() {
@@ -740,21 +756,35 @@
             // Create mixer for the avatar
             mixer = new THREE.AnimationMixer(avatar);
 
+            // Ensure avatar has a name for the animation track
+            if (!avatar.name) {
+                avatar.name = 'SuziAvatar';
+            }
+
             // Simple breathing animation using subtle position changes
             const times = [0, 1, 2, 3, 4];
             const values = [0, 0.02, 0, -0.02, 0]; // Subtle breathing motion
 
+            // Create proper track name for Three.js animation system
+            const trackName = `${avatar.name}.position.y`;
             const track = new THREE.NumberKeyframeTrack(
-                avatar.position + '.y', // Y position track
+                trackName, // Y position track with proper naming
                 times,
                 values
             );
 
             const clip = new THREE.AnimationClip('idle', 4, [track]);
             const action = mixer.clipAction(clip);
-            action.setLoop(THREE.LoopRepeat, Infinity); // Use THREE.LoopRepeat
+            action.setLoop(THREE.LoopRepeat, Infinity);
             mixer.timeScale = 1; // Normal speed
-            action.play();
+
+            try {
+                action.play();
+                console.log('✅ Idle animation started successfully');
+            } catch (error) {
+                console.error('❌ Error playing idle animation:', error);
+                // Continue without animation if it fails
+            }
         }
 
         function animate() {
